@@ -11,6 +11,7 @@ import {
   Chip,
 } from "@mui/material";
 import { useState } from "react";
+import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 
 /* AQI color logic */
 function getAQIColor(aqi) {
@@ -20,6 +21,15 @@ function getAQIColor(aqi) {
   if (aqi <= 200) return "error";
   if (aqi <= 300) return "secondary";
   return "error";
+}
+
+function getAQILabel(aqi) {
+  if (aqi <= 50) return "Good";
+  if (aqi <= 100) return "Moderate";
+  if (aqi <= 150) return "Unhealthy (SG)";
+  if (aqi <= 200) return "Unhealthy";
+  if (aqi <= 300) return "Very Unhealthy";
+  return "Hazardous";
 }
 
 function Ranking() {
@@ -36,40 +46,105 @@ function Ranking() {
   const sortedCities = [...cities].sort((a, b) => b.aqi - a.aqi);
 
   return (
-    <Box sx={{ p: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Live Air Quality Ranking
+    <Box sx={{ maxWidth: 900, mx: "auto", px: 3, py: 5 }}>
+      {/* Header */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1 }}>
+        <EmojiEventsIcon sx={{ fontSize: 36, color: "#f7971e" }} />
+        <Typography variant="h4">
+          Live Air Quality Ranking
+        </Typography>
+      </Box>
+
+      <Typography color="text.secondary" sx={{ mb: 4, ml: 0.5 }}>
+        Cities ranked by Air Quality Index (AQI) — higher is worse
       </Typography>
 
-      <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Cities ranked by Air Quality Index (AQI)
-      </Typography>
-
-      <TableContainer component={Paper}>
+      <TableContainer
+        component={Paper}
+        sx={{
+          borderRadius: 3,
+          boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
+          overflow: "hidden",
+        }}
+      >
         <Table>
           <TableHead>
-            <TableRow>
-              <TableCell>Rank</TableCell>
-              <TableCell>City</TableCell>
-              <TableCell>AQI</TableCell>
-              <TableCell>Status</TableCell>
+            <TableRow
+              sx={{
+                background: "linear-gradient(135deg, #1a1a2e, #16213e)",
+              }}
+            >
+              <TableCell sx={{ color: "white", fontWeight: 700, fontSize: "0.9rem" }}>
+                Rank
+              </TableCell>
+              <TableCell sx={{ color: "white", fontWeight: 700, fontSize: "0.9rem" }}>
+                City
+              </TableCell>
+              <TableCell sx={{ color: "white", fontWeight: 700, fontSize: "0.9rem" }}>
+                AQI
+              </TableCell>
+              <TableCell sx={{ color: "white", fontWeight: 700, fontSize: "0.9rem" }}>
+                Status
+              </TableCell>
             </TableRow>
           </TableHead>
 
           <TableBody>
             {sortedCities.map((row, index) => (
-              <TableRow key={row.city}>
-                <TableCell>{index + 1}</TableCell>
+              <TableRow
+                key={row.city}
+                sx={{
+                  backgroundColor:
+                    index % 2 === 0
+                      ? "rgba(46, 125, 50, 0.02)"
+                      : "white",
+                  transition: "background-color 0.2s",
+                  "&:hover": {
+                    backgroundColor: "rgba(46,125,50,0.06)",
+                  },
+                }}
+              >
+                <TableCell>
+                  <Box
+                    sx={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: "50%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontWeight: 700,
+                      fontSize: "0.85rem",
+                      background:
+                        index === 0
+                          ? "linear-gradient(135deg, #f7971e, #ffd200)"
+                          : index === 1
+                          ? "linear-gradient(135deg, #bbb, #ddd)"
+                          : index === 2
+                          ? "linear-gradient(135deg, #cd7f32, #e8a84c)"
+                          : "rgba(0,0,0,0.06)",
+                      color: index < 3 ? "white" : "#666",
+                    }}
+                  >
+                    {index + 1}
+                  </Box>
+                </TableCell>
 
-                <TableCell>{row.city}</TableCell>
+                <TableCell sx={{ fontWeight: 600, fontSize: "0.95rem" }}>
+                  {row.city}
+                </TableCell>
 
-                <TableCell>{row.aqi}</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: "1.05rem" }}>
+                  {row.aqi}
+                </TableCell>
 
                 <TableCell>
                   <Chip
-                    label={row.aqi}
+                    label={getAQILabel(row.aqi)}
                     color={getAQIColor(row.aqi)}
                     variant="filled"
+                    size="small"
+                    sx={{ fontWeight: 600, minWidth: 100 }}
                   />
                 </TableCell>
               </TableRow>

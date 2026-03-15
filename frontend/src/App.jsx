@@ -6,9 +6,13 @@ import {
   useLocation,
 } from "react-router-dom";
 
+import { CssBaseline } from "@mui/material";
+import { ThemeContextProvider } from "./context/ThemeContext";
+
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 import Home from "./pages/Home";
-import Map from "./pages/Map";
+import MapView from "./pages/Map";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
@@ -22,6 +26,8 @@ import AppDownload from "./pages/AppDownload";
 
 import { getCurrentUser } from "./utils/auth";
 
+import "./App.css";
+
 function Layout() {
   const location = useLocation();
 
@@ -33,52 +39,59 @@ function Layout() {
     <>
       {!hideNavbar && <Navbar />}
 
-      <Routes>
-        {/* Public */}
-        <Route path="/" element={<Home />} />
-        <Route path="/near-me" element={<NearMe />} />
-        <Route path="/ranking" element={<Ranking />} />
-        <Route path="/live-map" element={<LiveMap />} />
-        <Route path="/historical" element={<Historical />} />
-        <Route path="/api" element={<API />} />
-        <Route path="/app-download" element={<AppDownload />} />
+      <div className="page-animate" key={location.pathname}>
+        <Routes>
+          {/* Public */}
+          <Route path="/" element={<Home />} />
+          <Route path="/near-me" element={<NearMe />} />
+          <Route path="/ranking" element={<Ranking />} />
+          <Route path="/live-map" element={<LiveMap />} />
+          <Route path="/historical" element={<Historical />} />
+          <Route path="/api" element={<API />} />
+          <Route path="/app-download" element={<AppDownload />} />
 
-        {/* Protected */}
-        <Route
-          path="/map"
-          element={
-            getCurrentUser() ? (
-              <Map />
-            ) : (
-              <Navigate to="/login" />
-            )
-          }
-        />
+          {/* Protected */}
+          <Route
+            path="/map"
+            element={
+              getCurrentUser() ? (
+                <MapView />
+              ) : (
+                <Navigate to="/login" />
+              )
+            }
+          />
 
-        <Route
-          path="/profile"
-          element={
-            getCurrentUser() ? (
-              <Profile />
-            ) : (
-              <Navigate to="/login" />
-            )
-          }
-        />
+          <Route
+            path="/profile"
+            element={
+              getCurrentUser() ? (
+                <Profile />
+              ) : (
+                <Navigate to="/login" />
+              )
+            }
+          />
 
-        {/* Auth */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-      </Routes>
+          {/* Auth */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+        </Routes>
+      </div>
+
+      {!hideNavbar && <Footer />}
     </>
   );
 }
 
 function App() {
   return (
-    <Router>
-      <Layout />
-    </Router>
+    <ThemeContextProvider>
+      <CssBaseline />
+      <Router>
+        <Layout />
+      </Router>
+    </ThemeContextProvider>
   );
 }
 
