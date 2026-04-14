@@ -1,21 +1,8 @@
 import { Box, Typography, Card, CardContent, Button } from "@mui/material";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { MapContainer, TileLayer, Marker, Popup, Circle, Polygon } from "react-leaflet";
-import L from "leaflet";
+import { MapContainer, TileLayer, Circle, Polygon } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-
-// Fix for default marker icons in Leaflet
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
-
-let DefaultIcon = L.icon({
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
-L.Marker.prototype.options.icon = DefaultIcon;
 
 const indiaBounds = [
   [6.0, 68.2],
@@ -155,7 +142,7 @@ function MapView() {
           />
           <Polygon
             positions={[maskOuterRing, indiaPolygon]}
-            pathOptions={{ fillColor: "#5bb8ff", fillOpacity: 1, stroke: false }}
+            pathOptions={{ fillColor: "#4a72b3", fillOpacity: 1, stroke: false }}
           />
           {showHeatmap
             ? indiaOnlyHeatPoints.flatMap((pt) => ([
@@ -182,14 +169,7 @@ function MapView() {
                   }}
                 />,
               ]))
-            : (
-              <Marker position={position}>
-                <Popup>
-                  <strong>{aqiData?.city || "Selected Location"}</strong><br />
-                  AQI: {aqiData?.aqi} — {getAQILabel(aqiData?.aqi)}
-                </Popup>
-              </Marker>
-            )}
+            : null}
         </MapContainer>
       </Box>
 
