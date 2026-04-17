@@ -2,7 +2,7 @@ import { Box, Typography, Card, Chip, Button } from "@mui/material";
 import MapIcon from "@mui/icons-material/Map";
 import WhatshotIcon from "@mui/icons-material/Whatshot";
 import ThermostatIcon from "@mui/icons-material/Thermostat";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -10,6 +10,7 @@ import {
   Polygon,
   useMapEvents,
 } from "react-leaflet";
+import { fullWorldAndIndiaMask } from "../data/indiaMask";
 import "leaflet/dist/leaflet.css";
 
 const indiaBounds = [
@@ -161,18 +162,52 @@ function LiveMap() {
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [hoverWeather, setHoverWeather] = useState(null);
 
-  const locations = useMemo(
-    () => [
-      { city: "Delhi", lat: 28.61, lon: 77.2, aqi: 210 },
-      { city: "Mumbai", lat: 19.07, lon: 72.87, aqi: 140 },
-      { city: "Chennai", lat: 13.08, lon: 80.27, aqi: 95 },
-      { city: "Kolkata", lat: 22.57, lon: 88.36, aqi: 180 },
-      { city: "Guwahati", lat: 26.14, lon: 91.74, aqi: 132 },
-      { city: "Shillong", lat: 25.58, lon: 91.89, aqi: 96 },
-      { city: "Itanagar", lat: 27.09, lon: 93.62, aqi: 84 },
-    ],
-    []
-  );
+  const [locations, setLocations] = useState([
+    { city: "Delhi", lat: 28.61, lon: 77.2, aqi: 210 },
+    { city: "Mumbai", lat: 19.07, lon: 72.87, aqi: 140 },
+    { city: "Chennai", lat: 13.08, lon: 80.27, aqi: 95 },
+    { city: "Kolkata", lat: 22.57, lon: 88.36, aqi: 180 },
+    { city: "Guwahati", lat: 26.14, lon: 91.74, aqi: 132 },
+    { city: "Shillong", lat: 25.58, lon: 91.89, aqi: 96 },
+    { city: "Itanagar", lat: 27.09, lon: 93.62, aqi: 84 },
+    { city: "Bangalore", lat: 12.97, lon: 77.59, aqi: 80 },
+    { city: "Hyderabad", lat: 17.38, lon: 78.48, aqi: 110 },
+    { city: "Jaipur", lat: 26.91, lon: 75.78, aqi: 150 },
+    { city: "Bhopal", lat: 23.25, lon: 77.41, aqi: 120 },
+    { city: "Lucknow", lat: 26.84, lon: 80.94, aqi: 190 },
+  ]);
+
+  const [loadingMsg, setLoadingMsg] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    const fetchAnchors = async () => {
+      for (let i = 0; i < locations.length; i++) {
+        if (!active) break;
+        setLoadingMsg(`Calculating real-time heatmap node ${i + 1}/${locations.length} (${locations[i].city})`);
+        try {
+          const res = await fetch(`http://localhost:5000/aqi?lat=${locations[i].lat}&lon=${locations[i].lon}`);
+          const data = await res.json();
+          if (data && data.aqi !== undefined) {
+             setLocations((prev) => {
+               const copy = [...prev];
+               copy[i] = { ...copy[i], aqi: data.aqi };
+               return copy;
+             });
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      if (active) setLoadingMsg("100% Calculated");
+      setTimeout(() => {
+        if (active) setLoadingMsg("");
+      }, 2000);
+    };
+    fetchAnchors();
+    return () => { active = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const maskOuterRing = useMemo(() => worldMaskRing, []);
   const heatmapPoints = useMemo(() => {
     const points = [];
@@ -214,6 +249,11 @@ function LiveMap() {
           <Typography color="text.secondary" sx={{ ml: 0.5 }}>
             Real-time AQI tracking across major Indian cities
           </Typography>
+          {loadingMsg && (
+            <Typography variant="body2" sx={{ ml: 0.5, color: "#ff9800", fontWeight: 700, mt: 0.5 }}>
+              ⚡ {loadingMsg}... (Map will morph automatically)
+            </Typography>
+          )}
         </Box>
 
         <Button
@@ -284,8 +324,8 @@ function LiveMap() {
               bounds={indiaBounds}
             />
             <Polygon
-              positions={[maskOuterRing, indiaPolygon]}
-              pathOptions={{ fillColor: "#4a72b3", fillOpacity: 1, stroke: false }}
+              positions={fullWorldAndIndiaMask}
+              pathOptions={{ fillColor: "#f0f2f5", fillOpacity: 1, stroke: true, color: "#78909c", weight: 2 }}
             />
 
             {showHeatmap

@@ -1,7 +1,8 @@
 import { Box, Typography, Card, CardContent, Button } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { MapContainer, TileLayer, Circle, Polygon } from "react-leaflet";
+import { fullWorldAndIndiaMask } from "../data/indiaMask";
 import "leaflet/dist/leaflet.css";
 
 const indiaBounds = [
@@ -68,60 +69,100 @@ function isPointInPolygon(lat, lon, polygon) {
 }
 
 function MapView() {
-  const position = [11.6643, 78.1460];
+  const [position, setPosition] = useState([20.5937, 78.9629]);
   const [aqiData, setAqiData] = useState(null);
   const [showHeatmap, setShowHeatmap] = useState(false);
+  const [loadingLoc, setLoadingLoc] = useState(true);
 
   useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setPosition([pos.coords.latitude, pos.coords.longitude]);
+          setLoadingLoc(false);
+        },
+        () => {
+          setLoadingLoc(false);
+        }
+      );
+    } else {
+      setLoadingLoc(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (loadingLoc) return;
     const fetchAQI = async () => {
       try {
-        const res = await fetch(
-          `http://localhost:5000/aqi?lat=${position[0]}&lon=${position[1]}`
-        );
+        const res = await fetch(`http://localhost:5000/aqi?lat=${position[0]}&lon=${position[1]}`);
         if (!res.ok) throw new Error("Backend not reachable");
         const data = await res.json();
         setAqiData(data);
       } catch (err) {
         console.error("AQI Data Fetch Error:", err);
-        // Fallback for demo if backend is missing
-        setAqiData({
-          aqi: 56,
-          pm25: 14.2,
-          city: "Salem (Mock)"
-        });
       }
     };
     fetchAQI();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [position, loadingLoc]);
 
-  const color = aqiData ? getAQIColor(aqiData.aqi) : "#2196f3";
-  const points = [
+  // Heatmap interpolation nodes
+  const [points, setPoints] = useState([
     { city: "Delhi", lat: 28.61, lon: 77.2, aqi: 210 },
     { city: "Mumbai", lat: 19.07, lon: 72.87, aqi: 140 },
     { city: "Kolkata", lat: 22.57, lon: 88.36, aqi: 180 },
     { city: "Chennai", lat: 13.08, lon: 80.27, aqi: 95 },
     { city: "Bengaluru", lat: 12.97, lon: 77.59, aqi: 88 },
     { city: "Guwahati", lat: 26.14, lon: 91.74, aqi: 132 },
-    { city: "Shillong", lat: 25.58, lon: 91.89, aqi: 96 },
-    { city: "Itanagar", lat: 27.09, lon: 93.62, aqi: 84 },
-    { city: "Salem", lat: position[0], lon: position[1], aqi: aqiData?.aqi ?? 110 },
-  ];
-  const heatmapPoints = [];
-  for (let lat = indiaBounds[0][0]; lat <= indiaBounds[1][0]; lat += 0.62) {
-    for (let lon = indiaBounds[0][1]; lon <= indiaBounds[1][1]; lon += 0.62) {
-      heatmapPoints.push({
-        key: `${lat.toFixed(2)}-${lon.toFixed(2)}`,
-        lat,
-        lon,
-        aqi: estimateAQI(lat, lon, points),
-      });
+  ]);
+
+  const [loadingMsg, setLoadingMsg] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    const fetchAnchors = async () => {
+      for (let i = 0; i < points.length; i++) {
+        if (!active) break;
+        setLoadingMsg(`Heatmap Syncing: ${points[i].city}`);
+        try {
+          const res = await fetch(`http://localhost:5000/aqi?lat=${points[i].lat}&lon=${points[i].lon}`);
+          const data = await res.json();
+          if (data && data.aqi !== undefined) {
+             setPoints((prev) => {
+               const copy = [...prev];
+               copy[i] = { ...copy[i], aqi: data.aqi };
+               return copy;
+             });
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      if (active) setLoadingMsg("100% Calculated");
+      setTimeout(() => {
+        if (active) setLoadingMsg("");
+      }, 2000);
+    };
+    fetchAnchors();
+    return () => { active = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const color = aqiData ? getAQIColor(aqiData.aqi) : "#2196f3";
+  const heatmapPoints = useMemo(() => {
+    const arr = [];
+    // Only calculate around India bounds to save CPU
+    for (let lat = indiaBounds[0][0]; lat <= indiaBounds[1][0]; lat += 0.62) {
+      for (let lon = indiaBounds[0][1]; lon <= indiaBounds[1][1]; lon += 0.62) {
+        arr.push({
+          key: `${lat.toFixed(2)}-${lon.toFixed(2)}`,
+          lat,
+          lon,
+          aqi: estimateAQI(lat, lon, points),
+        });
+      }
     }
-  }
-  const indiaOnlyHeatPoints = heatmapPoints.filter((pt) =>
-    isPointInPolygon(pt.lat, pt.lon, indiaPolygon)
-  );
-  const maskOuterRing = worldMaskRing;
+    return arr.filter((pt) => isPointInPolygon(pt.lat, pt.lon, indiaPolygon));
+  }, [points]);
 
   return (
     <Box sx={{ position: "relative", height: "calc(100vh - 64px)" }}>
@@ -141,11 +182,11 @@ function MapView() {
             bounds={indiaBounds}
           />
           <Polygon
-            positions={[maskOuterRing, indiaPolygon]}
-            pathOptions={{ fillColor: "#4a72b3", fillOpacity: 1, stroke: false }}
+            positions={fullWorldAndIndiaMask}
+            pathOptions={{ fillColor: "#f0f2f5", fillOpacity: 1, stroke: true, color: "#78909c", weight: 2 }}
           />
           {showHeatmap
-            ? indiaOnlyHeatPoints.flatMap((pt) => ([
+            ? heatmapPoints.flatMap((pt) => ([
                 <Circle
                   key={`${pt.key}-outer`}
                   center={[pt.lat, pt.lon]}
@@ -174,65 +215,78 @@ function MapView() {
       </Box>
 
       {/* Floating info card */}
-      {aqiData && (
-        <Card
-          sx={{
-            position: "absolute",
-            top: 20,
-            right: 20,
-            zIndex: 1000,
-            width: 260,
-            borderRadius: 3,
-            background: "rgba(255,255,255,0.92)",
-            backdropFilter: "blur(12px)",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
-          }}
-        >
-          <CardContent sx={{ p: 2.5 }}>
-            <Typography variant="caption" sx={{ color: "#999", fontWeight: 500, letterSpacing: 1 }}>
-              CURRENT AQI
+      <Card
+        sx={{
+          position: "absolute",
+          top: 20,
+          right: 20,
+          zIndex: 1000,
+          width: 260,
+          borderRadius: 3,
+          background: "rgba(255,255,255,0.92)",
+          backdropFilter: "blur(12px)",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
+        }}
+      >
+        <CardContent sx={{ p: 2.5 }}>
+          <Typography variant="caption" sx={{ color: "#999", fontWeight: 500, letterSpacing: 1 }}>
+            MY LOCATION AQI
+          </Typography>
+          
+          {aqiData ? (
+            <>
+              <Typography
+                variant="h3"
+                sx={{
+                  fontWeight: 800,
+                  color: color,
+                  my: 0.5,
+                }}
+              >
+                {aqiData.aqi}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                {aqiData.category || getAQILabel(aqiData.aqi)} • PM2.5: {aqiData.pm25}
+              </Typography>
+            </>
+          ) : (
+            <Typography variant="h5" sx={{ fontWeight: 600, color: '#555', my: 1 }}>
+              Detecting...
             </Typography>
-            <Typography
-              variant="h3"
-              sx={{
-                fontWeight: 800,
-                color: color,
-                my: 0.5,
-              }}
-            >
-              {aqiData.aqi}
+          )}
+
+          {loadingMsg && (
+            <Typography variant="caption" sx={{ color: "#ff9800", display: "block", mb: 1, fontWeight: 'bold' }}>
+              ⚡ {loadingMsg}...
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              {getAQILabel(aqiData.aqi)} • PM2.5: {aqiData.pm25}
-            </Typography>
-            <Button
-              variant={showHeatmap ? "contained" : "outlined"}
-              size="small"
-              fullWidth
-              onClick={() => setShowHeatmap((prev) => !prev)}
-              sx={{ mb: 1, textTransform: "none", fontWeight: 700 }}
-            >
-              {showHeatmap ? "Heatmap: ON" : "Heatmap: OFF"}
-            </Button>
-            <Button
-              component={Link}
-              to="/near-me"
-              variant="contained"
-              size="small"
-              fullWidth
-              sx={{
-                mt: 1,
-                background: "linear-gradient(135deg, #2e7d32, #00c853)",
-                "&:hover": {
-                  background: "linear-gradient(135deg, #1b5e20, #00a844)",
-                },
-              }}
-            >
-              Search Other Cities
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+          )}
+          <Button
+            variant={showHeatmap ? "contained" : "outlined"}
+            size="small"
+            fullWidth
+            onClick={() => setShowHeatmap((prev) => !prev)}
+            sx={{ mb: 1, textTransform: "none", fontWeight: 700 }}
+          >
+            {showHeatmap ? "Heatmap: ON" : "Heatmap: OFF"}
+          </Button>
+          <Button
+            component={Link}
+            to="/near-me"
+            variant="contained"
+            size="small"
+            fullWidth
+            sx={{
+              mt: 1,
+              background: "linear-gradient(135deg, #2e7d32, #00c853)",
+              "&:hover": {
+                background: "linear-gradient(135deg, #1b5e20, #00a844)",
+              },
+            }}
+          >
+            Search Other Cities
+          </Button>
+        </CardContent>
+      </Card>
     </Box>
   );
 }
