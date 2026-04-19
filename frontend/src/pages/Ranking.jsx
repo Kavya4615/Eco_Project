@@ -32,43 +32,20 @@ function getAQILabel(aqi) {
   return "Hazardous";
 }
 
+import { useLocationData } from "../context/LocationContext";
+
 function Ranking() {
-  const [cities, setCities] = useState([
-    { city: "Delhi", lat: 28.61, lon: 77.2, aqi: "-" },
-    { city: "Mumbai", lat: 19.07, lon: 72.87, aqi: "-" },
-    { city: "Kolkata", lat: 22.57, lon: 88.36, aqi: "-" },
-    { city: "Chennai", lat: 13.08, lon: 80.27, aqi: "-" },
-    { city: "Bengaluru", lat: 12.97, lon: 77.59, aqi: "-" },
-    { city: "Lucknow", lat: 26.84, lon: 80.94, aqi: "-" },
-  ]);
-  const [loading, setLoading] = useState(true);
+  const { rankingData, updateRankings } = useLocationData();
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    let active = true;
-    const fetchRankings = async () => {
+    if (rankingData.length === 0) {
       setLoading(true);
-      const updatedCities = [];
-      for (const loc of cities) {
-        if (!active) break;
-        try {
-          const res = await fetch(`http://localhost:5000/aqi?lat=${loc.lat}&lon=${loc.lon}`);
-          const data = await res.json();
-          updatedCities.push({ ...loc, aqi: data.aqi !== undefined ? data.aqi : "-" });
-        } catch (e) {
-          updatedCities.push({ ...loc, aqi: "-" });
-        }
-      }
-      if (active) {
-        setCities(updatedCities);
-        setLoading(false);
-      }
-    };
-    fetchRankings();
-    return () => { active = false; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      updateRankings().then(() => setLoading(false));
+    }
+  }, [rankingData, updateRankings]);
 
-  const sortedCities = [...cities].sort((a, b) => {
+  const sortedCities = [...rankingData].sort((a, b) => {
     if (a.aqi === "-") return 1;
     if (b.aqi === "-") return -1;
     return b.aqi - a.aqi;

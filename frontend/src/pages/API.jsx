@@ -6,7 +6,7 @@ import { useState } from "react";
 function API() {
   const [copied, setCopied] = useState(false);
 
-  const exampleUrl = "http://localhost:5000/aqi?lat=11.66&lon=78.14";
+  const exampleUrl = "http://localhost:5000/aqi?lat=28.61&lon=77.20";
 
   const handleCopy = () => {
     navigator.clipboard.writeText(exampleUrl);

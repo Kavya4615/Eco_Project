@@ -45,7 +45,10 @@ const features = [
   },
 ];
 
+import { useLocationData } from "../context/LocationContext";
+
 function Home() {
+  const { coords, locationName: homeLocName, aqiData: homeAQI, updateLocation } = useLocationData();
   const muiTheme = useMuiTheme();
   const isDark = muiTheme.palette.mode === "dark";
 
@@ -249,7 +252,7 @@ function Home() {
               variant="subtitle2"
               sx={{ opacity: 0.7, fontWeight: 500, letterSpacing: 1 }}
             >
-              SALEM, INDIA
+              {homeLocName}
             </Typography>
 
             <Typography
@@ -263,11 +266,11 @@ function Home() {
                 fontSize: { xs: "2.2rem", md: "3rem" },
               }}
             >
-              56
+              {homeAQI ? homeAQI.aqi : "--"}
             </Typography>
 
             <Typography variant="body2" sx={{ opacity: 0.7 }}>
-              Moderate Air Quality
+              {homeAQI ? homeAQI.category : "Loading quality..."}
             </Typography>
           </CardContent>
         </Card>

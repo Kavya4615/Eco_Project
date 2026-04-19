@@ -17,6 +17,7 @@ import {
 
 import { useState, useEffect } from "react";
 import TimelineIcon from "@mui/icons-material/Timeline";
+import { useLocationData } from "../context/LocationContext";
 
 /* Custom tooltip */
 function CustomTooltip({ active, payload, label }) {
@@ -45,48 +46,15 @@ function CustomTooltip({ active, payload, label }) {
 }
 
 function Historical() {
-
-  const [data, setData] = useState([
-    { date: "-6d", pm25: 0 },
-    { date: "-5d", pm25: 0 },
-    { date: "-4d", pm25: 0 },
-    { date: "-3d", pm25: 0 },
-    { date: "-2d", pm25: 0 },
-    { date: "Yday", pm25: 0 },
-    { date: "Today", pm25: 0 },
-  ]);
-  const [loading, setLoading] = useState(true);
+  const { coords, historicalData: data, updateHistorical } = useLocationData();
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          try {
-            const res = await fetch(`http://localhost:5000/aqi?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
-            const apiData = await res.json();
-            if (apiData && apiData.pm25 !== undefined) {
-              const realPM = parseFloat(apiData.pm25);
-              setData([
-                { date: "-6d", pm25: parseFloat((realPM * 0.8).toFixed(1)) },
-                { date: "-5d", pm25: parseFloat((realPM * 1.1).toFixed(1)) },
-                { date: "-4d", pm25: parseFloat((realPM * 1.35).toFixed(1)) },
-                { date: "-3d", pm25: parseFloat((realPM * 1.25).toFixed(1)) },
-                { date: "-2d", pm25: parseFloat((realPM * 0.9).toFixed(1)) },
-                { date: "Yday", pm25: parseFloat((realPM * 1.05).toFixed(1)) },
-                { date: "Today (Live)", pm25: parseFloat(realPM.toFixed(1)) },
-              ]);
-            }
-          } catch (err) {
-            console.error(err);
-          }
-          setLoading(false);
-        },
-        () => setLoading(false)
-      );
-    } else {
-      setLoading(false);
+    if (data.length === 0 && coords) {
+      setLoading(true);
+      updateHistorical().then(() => setLoading(false));
     }
-  }, []);
+  }, [data, coords, updateHistorical]);
 
   return (
     <Box sx={{ maxWidth: 900, mx: "auto", px: 3, py: 5 }}>

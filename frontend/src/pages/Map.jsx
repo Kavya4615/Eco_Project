@@ -3,6 +3,8 @@ import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { MapContainer, TileLayer, Circle, Polygon } from "react-leaflet";
 import { fullWorldAndIndiaMask } from "../data/indiaMask";
+import { motion } from "framer-motion";
+import DragHandleIcon from "@mui/icons-material/DragHandle";
 import "leaflet/dist/leaflet.css";
 
 const indiaBounds = [
@@ -68,42 +70,18 @@ function isPointInPolygon(lat, lon, polygon) {
   return inside;
 }
 
+import { useLocationData } from "../context/LocationContext";
+
 function MapView() {
-  const [position, setPosition] = useState([20.5937, 78.9629]);
-  const [aqiData, setAqiData] = useState(null);
+  const { coords, locationName, aqiData, updateLocation } = useLocationData();
+  const [position, setPosition] = useState(coords || [20.5937, 78.9629]);
   const [showHeatmap, setShowHeatmap] = useState(false);
-  const [loadingLoc, setLoadingLoc] = useState(true);
 
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setPosition([pos.coords.latitude, pos.coords.longitude]);
-          setLoadingLoc(false);
-        },
-        () => {
-          setLoadingLoc(false);
-        }
-      );
-    } else {
-      setLoadingLoc(false);
+    if (coords) {
+      setPosition(coords);
     }
-  }, []);
-
-  useEffect(() => {
-    if (loadingLoc) return;
-    const fetchAQI = async () => {
-      try {
-        const res = await fetch(`http://localhost:5000/aqi?lat=${position[0]}&lon=${position[1]}`);
-        if (!res.ok) throw new Error("Backend not reachable");
-        const data = await res.json();
-        setAqiData(data);
-      } catch (err) {
-        console.error("AQI Data Fetch Error:", err);
-      }
-    };
-    fetchAQI();
-  }, [position, loadingLoc]);
+  }, [coords]);
 
   // Heatmap interpolation nodes
   const [points, setPoints] = useState([
@@ -215,78 +193,93 @@ function MapView() {
       </Box>
 
       {/* Floating info card */}
-      <Card
-        sx={{
+      <motion.div
+        drag
+        dragMomentum={false}
+        dragElastic={0.05}
+        style={{
           position: "absolute",
           top: 20,
           right: 20,
           zIndex: 1000,
-          width: 260,
-          borderRadius: 3,
-          background: "rgba(255,255,255,0.92)",
-          backdropFilter: "blur(12px)",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
+          cursor: "grab",
         }}
+        whileDrag={{ cursor: "grabbing", scale: 1.05 }}
       >
-        <CardContent sx={{ p: 2.5 }}>
-          <Typography variant="caption" sx={{ color: "#999", fontWeight: 500, letterSpacing: 1 }}>
-            MY LOCATION AQI
-          </Typography>
-          
-          {aqiData ? (
-            <>
-              <Typography
-                variant="h3"
-                sx={{
-                  fontWeight: 800,
-                  color: color,
-                  my: 0.5,
-                }}
-              >
-                {aqiData.aqi}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                {aqiData.category || getAQILabel(aqiData.aqi)} • PM2.5: {aqiData.pm25}
-              </Typography>
-            </>
-          ) : (
-            <Typography variant="h5" sx={{ fontWeight: 600, color: '#555', my: 1 }}>
-              Detecting...
+        <Card
+          sx={{
+            width: 260,
+            borderRadius: 3,
+            background: "rgba(255,255,255,0.92)",
+            backdropFilter: "blur(12px)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
+            border: "1px solid rgba(0,0,0,0.05)",
+          }}
+        >
+          {/* Drag Handle */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 0.5, opacity: 0.2 }}>
+            <DragHandleIcon fontSize="small" />
+          </Box>
+          <CardContent sx={{ p: "8px 20px 20px 20px" }}>
+            <Typography variant="caption" sx={{ color: "#999", fontWeight: 500, letterSpacing: 1 }}>
+              {locationName} AQI
             </Typography>
-          )}
+            
+            {aqiData ? (
+              <>
+                <Typography
+                  variant="h3"
+                  sx={{
+                    fontWeight: 800,
+                    color: color,
+                    my: 0.5,
+                  }}
+                >
+                  {aqiData.aqi}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  {aqiData.category || getAQILabel(aqiData.aqi)} • PM2.5: {aqiData.pm25}
+                </Typography>
+              </>
+            ) : (
+              <Typography variant="h5" sx={{ fontWeight: 600, color: '#555', my: 1 }}>
+                Detecting...
+              </Typography>
+            )}
 
-          {loadingMsg && (
-            <Typography variant="caption" sx={{ color: "#ff9800", display: "block", mb: 1, fontWeight: 'bold' }}>
-              ⚡ {loadingMsg}...
-            </Typography>
-          )}
-          <Button
-            variant={showHeatmap ? "contained" : "outlined"}
-            size="small"
-            fullWidth
-            onClick={() => setShowHeatmap((prev) => !prev)}
-            sx={{ mb: 1, textTransform: "none", fontWeight: 700 }}
-          >
-            {showHeatmap ? "Heatmap: ON" : "Heatmap: OFF"}
-          </Button>
-          <Button
-            component={Link}
-            to="/near-me"
-            variant="contained"
-            size="small"
-            fullWidth
-            sx={{
-              mt: 1,
-              background: "linear-gradient(135deg, #2e7d32, #00c853)",
-              "&:hover": {
-                background: "linear-gradient(135deg, #1b5e20, #00a844)",
-              },
-            }}
-          >
-            Search Other Cities
-          </Button>
-        </CardContent>
-      </Card>
+            {loadingMsg && (
+              <Typography variant="caption" sx={{ color: "#ff9800", display: "block", mb: 1, fontWeight: 'bold' }}>
+                ⚡ {loadingMsg}...
+              </Typography>
+            )}
+            <Button
+              variant={showHeatmap ? "contained" : "outlined"}
+              size="small"
+              fullWidth
+              onClick={() => setShowHeatmap((prev) => !prev)}
+              sx={{ mb: 1, textTransform: "none", fontWeight: 700 }}
+            >
+              {showHeatmap ? "Heatmap: ON" : "Heatmap: OFF"}
+            </Button>
+            <Button
+              component={Link}
+              to="/near-me"
+              variant="contained"
+              size="small"
+              fullWidth
+              sx={{
+                mt: 1,
+                background: "linear-gradient(135deg, #2e7d32, #00c853)",
+                "&:hover": {
+                  background: "linear-gradient(135deg, #1b5e20, #00a844)",
+                },
+              }}
+            >
+              Search Other Cities
+            </Button>
+          </CardContent>
+        </Card>
+      </motion.div>
     </Box>
   );
 }

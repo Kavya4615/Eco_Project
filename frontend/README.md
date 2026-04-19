@@ -20,7 +20,7 @@
 ```
 Eco_Project/
 └── frontend/
-    ├── predict_aqi.py              # 🐍 Flask backend — serves /aqi endpoint
+    ├── predict_aqi_new.py              # 🐍 Flask backend — serves /aqi endpoint
     ├── india_aqi_lightgbm_gpu_model.txt  # 🤖 Trained LightGBM model
     ├── key.json                    # 🔐 Google Earth Engine credentials (NOT in git)
     ├── src/
@@ -41,7 +41,7 @@ Eco_Project/
 Browser (lat, lon)
       │
       ▼
-Flask /aqi endpoint (predict_aqi.py)
+Flask /aqi endpoint (predict_aqi_new.py)
       │
       ├─► Google Earth Engine → Satellite AOD data
       ├─► Open-Meteo API      → Weather features (temp, humidity, wind...)
@@ -112,7 +112,7 @@ To get your `key.json`:
 **Start the Flask server:**
 
 ```bash
-python predict_aqi.py
+python predict_aqi_new.py
 ```
 
 The backend will start on **http://localhost:5000**. You should see:

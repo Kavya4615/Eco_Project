@@ -18,8 +18,10 @@ import SearchIcon from "@mui/icons-material/Search";
 import MyLocationIcon from "@mui/icons-material/MyLocation";
 import GpsFixedIcon from "@mui/icons-material/GpsFixed";
 import CloseIcon from "@mui/icons-material/Close";
+import DragHandleIcon from "@mui/icons-material/DragHandle";
 import { useLocation as useRouterLocation } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, useMap, Popup, Polygon, useMapEvents } from "react-leaflet";
+import { motion } from "framer-motion";
 import { fullWorldAndIndiaMask } from "../data/indiaMask";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -72,9 +74,12 @@ function getAQIColor(aqi) {
   return "#800000";
 }
 
+import { useLocationData } from "../context/LocationContext";
+
 function NearMe() {
   const routerLoc = useRouterLocation();
   const initialSearch = routerLoc.state?.initialSearch || "";
+  const { coords: contextCoords, locationName: contextName, aqiData: contextAQI, updateLocation } = useLocationData();
 
   const [location, setLocation] = useState(initialSearch);
   const [position, setPosition] = useState([20.5937, 78.9629]);
@@ -124,42 +129,29 @@ function NearMe() {
   };
 
   const useCurrentLocation = () => {
-    if (navigator.geolocation) {
-      setLoading(true);
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const newPos = [pos.coords.latitude, pos.coords.longitude];
-          setPosition(newPos);
-          setLocation("Your Location");
-          fetchAQI(newPos[0], newPos[1]);
-          setLoading(false);
-        },
-        () => setLoading(false)
-      );
+    if (contextCoords) {
+      setPosition(contextCoords);
+      setLocation(contextName || "Your Location");
+      setAqiData(contextAQI);
+    } else {
+      updateLocation(true);
     }
   };
 
   useEffect(() => {
     if (initialSearch) {
       handleSearch();
+    } else if (contextCoords) {
+      // Use cached context data
+      setPosition(contextCoords);
+      setLocation(contextName || "Your Location");
+      setAqiData(contextAQI);
     } else {
-      // Auto-detect location on page load
-      if (navigator.geolocation) {
-        setLoading(true);
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            const newPos = [pos.coords.latitude, pos.coords.longitude];
-            setPosition(newPos);
-            setLocation("Your Location");
-            fetchAQI(newPos[0], newPos[1]);
-            setLoading(false);
-          },
-          () => setLoading(false)
-        );
-      }
+      // Fallback: trigger update if context is empty
+      updateLocation();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [contextCoords, initialSearch]);
 
   const color = aqiData ? getAQIColor(aqiData.aqi) : "#2196f3";
 
@@ -198,35 +190,44 @@ function NearMe() {
       </Box>
 
       {showSearchPanel ? (
-        <Box
-          sx={{
+        <motion.div
+          drag
+          dragMomentum={false}
+          dragElastic={0.1}
+          style={{
             position: "absolute",
             top: 24,
             left: "50%",
-            transform: "translateX(-50%)",
             zIndex: 1000,
-            width: { xs: "90%", sm: "500px" },
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center"
+            x: "-50%",
+            width: "90%",
+            maxWidth: "500px",
+            cursor: "grab",
           }}
+          whileDrag={{ cursor: "grabbing", scale: 1.02 }}
         >
           <Paper
             elevation={6}
             sx={{
               p: 2,
-              pt: 4,
+              pt: 1,
               borderRadius: 4,
               position: "relative",
               width: "100%",
               background: isDark ? "rgba(26, 29, 40, 0.95)" : "rgba(255,255,255,0.95)",
               backdropFilter: "blur(12px)",
+              border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.05)",
             }}
           >
+            {/* Drag Handle UI */}
+            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 0.5, opacity: 0.3 }}>
+              <DragHandleIcon fontSize="small" />
+            </Box>
+
             <IconButton
               size="small"
               onClick={() => setShowSearchPanel(false)}
-              sx={{ position: "absolute", top: 4, right: 4 }}
+              sx={{ position: "absolute", top: 8, right: 8 }}
             >
               <CloseIcon fontSize="small" />
             </IconButton>
@@ -294,7 +295,7 @@ function NearMe() {
               </Box>
             )}
           </Paper>
-        </Box>
+        </motion.div>
       ) : (
         <Box
           sx={{

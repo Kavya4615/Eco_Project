@@ -8,6 +8,7 @@ import {
 
 import { CssBaseline } from "@mui/material";
 import { ThemeContextProvider } from "./context/ThemeContext";
+import { LocationProvider } from "./context/LocationContext";
 
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -86,12 +87,14 @@ function Layout() {
 
 function App() {
   return (
-    <ThemeContextProvider>
-      <CssBaseline />
-      <Router>
-        <Layout />
-      </Router>
-    </ThemeContextProvider>
+    <LocationProvider>
+      <ThemeContextProvider>
+        <CssBaseline />
+        <Router>
+          <Layout />
+        </Router>
+      </ThemeContextProvider>
+    </LocationProvider>
   );
 }
 
