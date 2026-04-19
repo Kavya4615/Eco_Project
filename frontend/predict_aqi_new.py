@@ -202,21 +202,35 @@ def get_daily_weather(lat, lon):
 # 3. PM2.5 to Indian NAQI
 # =========================
 def calculate_indian_aqi(pm25):
-    breakpoints = [
-        (0.0, 30.0, 0, 50, "Good"),
-        (30.1, 60.0, 51, 100, "Satisfactory"),
-        (60.1, 90.0, 101, 200, "Moderate"),
-        (90.1, 120.0, 201, 300, "Poor"),
-        (120.1, 250.0, 301, 400, "Very Poor"),
-        (250.1, 9999.9, 401, 500, "Severe")
-    ]
-    for (c_low, c_high, i_low, i_high, cat) in breakpoints:
-        if c_low <= pm25 <= c_high:
-            aqi = ((i_high - i_low) / (c_high - c_low)) * (pm25 - c_low) + i_low
-            return round(aqi), cat
-    if pm25 > 250:
-        return 500, "Severe (Off-chart)"
-    return 0, "Unknown"
+    pm25 = float(pm25)
+    print(f"DEBUG: Calculating AQI for PM2.5 = {pm25}")
+    
+    if pm25 < 0:
+        return 0, "Good"
+    elif pm25 <= 30:
+        aqi = (50 / 30) * pm25
+    elif pm25 <= 60:
+        aqi = ((100 - 51) / (60 - 31)) * (pm25 - 31) + 51
+    elif pm25 <= 90:
+        aqi = ((200 - 101) / (90 - 61)) * (pm25 - 61) + 101
+    elif pm25 <= 120:
+        aqi = ((300 - 201) / (120 - 91)) * (pm25 - 91) + 201
+    elif pm25 <= 250:
+        aqi = ((400 - 301) / (250 - 121)) * (pm25 - 121) + 301
+    else:
+        aqi = ((500 - 401) / (500 - 251)) * (pm25 - 251) + 401
+        
+    category = "Unknown"
+    if aqi <= 50: category = "Good"
+    elif aqi <= 100: category = "Satisfactory"
+    elif aqi <= 200: category = "Moderate"
+    elif aqi <= 300: category = "Poor"
+    elif aqi <= 400: category = "Very Poor"
+    else: category = "Severe"
+    
+    final_aqi = min(500, max(0, round(aqi)))
+    print(f"DEBUG: Result -> AQI: {final_aqi}, Category: {category}")
+    return final_aqi, category
 
 # =========================
 # FLASK BACKEND
