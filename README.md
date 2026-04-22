@@ -10,7 +10,6 @@
 - 📍 **Air Quality Near Me** — Auto-detects your location and instantly shows ML-predicted AQI & PM2.5.
 - 📈 **Tomorrow's Forecast** — Visualize predictive PM2.5 and AQI values for both today and tomorrow.
 - 🗺️ **Interactive Map** — Click anywhere on India's map to get a real-time AQI prediction for that pinpoint.
-- 🔥 **Real-Time Pollutants** — Detailed monitoring of PM10, NO2, CO, and O3 levels.
 - 🏥 **Health Personalization** — Tailored health advice based on user profiles (Normal, Asthmatic, Elderly).
 - 🗺️ **Road-Aware Route Planner** — Plan the healthiest route using actual road networks (OSRM) to find the least-polluted corridor. Features manual text searching, coordinate entry, and automatic map bounding.
 - 🔔 **AQI Notifications** — Real-time browser alerts when air quality crosses dangerous thresholds (200+).
