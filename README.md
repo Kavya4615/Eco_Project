@@ -8,12 +8,11 @@
 
 - 🔐 **User Authentication** — Secure Register and Login system with profile persistence using SQLite.
 - 📍 **Air Quality Near Me** — Auto-detects your location and instantly shows ML-predicted AQI & PM2.5.
-- 📈 **30-Day History** — Visualize the last month's AQI and PM2.5 trends for any searched location.
+- 📈 **Tomorrow's Forecast** — Visualize predictive PM2.5 and AQI values for both today and tomorrow.
 - 🗺️ **Interactive Map** — Click anywhere on India's map to get a real-time AQI prediction for that pinpoint.
-- 🔮 **7-Day Forecast** — Predictive AQI analytics for the upcoming week powered by Open-Meteo.
 - 🔥 **Real-Time Pollutants** — Detailed monitoring of PM10, NO2, CO, and O3 levels.
 - 🏥 **Health Personalization** — Tailored health advice based on user profiles (Normal, Asthmatic, Elderly).
-- 🗺️ **Road-Aware Route Planner** — Plan the healthiest route using actual road networks (OSRM) to find the least-polluted corridor.
+- 🗺️ **Road-Aware Route Planner** — Plan the healthiest route using actual road networks (OSRM) to find the least-polluted corridor. Features manual text searching, coordinate entry, and automatic map bounding.
 - 🔔 **AQI Notifications** — Real-time browser alerts when air quality crosses dangerous thresholds (200+).
 
 ---
@@ -130,8 +129,7 @@ The app will open at **http://localhost:5173**
 ### `GET /aqi?lat={lat}&lon={lon}`
 Predicts current AQI, 7-day forecast, and health recommendations.
 
-### `GET /aqi/history?lat={lat}&lon={lon}`
-Returns 30 days of historical AQI and PM2.5 trend data.
+
 
 ### `GET /aqi/region?lat_min={..}&lat_max={..}&lon_min={..}&lon_max={..}`
 Returns spatial AQI data across a bounding box for trend analysis.
