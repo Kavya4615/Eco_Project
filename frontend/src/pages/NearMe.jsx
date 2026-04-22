@@ -65,14 +65,33 @@ function ChangeView({ center, zoom, ticket }) {
   return null;
 }
 
-function MapClickPinpoint({ setPosition, fetchAQI, setLocation, routeMode, setRoutePoints }) {
+function FitRouteBounds({ routePath }) {
+  const map = useMap();
+  useEffect(() => {
+    if (routePath && routePath.length > 1) {
+      const bounds = L.latLngBounds(routePath);
+      map.fitBounds(bounds, { padding: [50, 50], animate: true, duration: 1.5 });
+    }
+  }, [routePath, map]);
+  return null;
+}
+
+function MapClickPinpoint({ setPosition, fetchAQI, setLocation, routeMode, setRoutePoints, setStartInput, setEndInput }) {
   useMapEvents({
     click(e) {
       const { lat, lng } = e.latlng;
       if (routeMode) {
         setRoutePoints(prev => {
-          if (!prev.start) return { start: [lat, lng], end: null };
-          if (!prev.end) return { ...prev, end: [lat, lng] };
+          if (!prev.start) {
+            if (setStartInput) setStartInput(`Lat: ${lat.toFixed(4)}, Lon: ${lng.toFixed(4)}`);
+            return { start: [lat, lng], end: null };
+          }
+          if (!prev.end) {
+            if (setEndInput) setEndInput(`Lat: ${lat.toFixed(4)}, Lon: ${lng.toFixed(4)}`);
+            return { ...prev, end: [lat, lng] };
+          }
+          if (setStartInput) setStartInput(`Lat: ${lat.toFixed(4)}, Lon: ${lng.toFixed(4)}`);
+          if (setEndInput) setEndInput("");
           return { start: [lat, lng], end: null }; // Reset if both exist
         });
       } else {
@@ -119,6 +138,39 @@ function NearMe() {
   const [geoError, setGeoError] = useState(null);
   const muiTheme = useMuiTheme();
   const isDark = muiTheme.palette.mode === "dark";
+
+  const [startInput, setStartInput] = useState("");
+  const [endInput, setEndInput] = useState("");
+
+  const geocodeAndSetPoint = async (query, type) => {
+    if (!query.trim()) return;
+    const coordMatch = query.match(/lat:?\s*([+-]?\d+\.?\d*)\s*,\s*lon:?\s*([+-]?\d+\.?\d*)/i);
+    if (coordMatch) {
+        const lat = parseFloat(coordMatch[1]);
+        const lon = parseFloat(coordMatch[2]);
+        setRoutePoints(prev => ({ ...prev, [type]: [lat, lon] }));
+        if (type === 'start') setStartInput(`Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`);
+        if (type === 'end') setEndInput(`Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`);
+        return;
+    }
+    try {
+      setLoading(true);
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=in&q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const coords = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+        setRoutePoints(prev => ({ ...prev, [type]: coords }));
+        if (type === 'start') setStartInput(query);
+        if (type === 'end') setEndInput(query);
+      } else {
+        setError(`Could not find ${type} location`);
+      }
+    } catch (err) {
+      setError(`Failed to search ${type} location`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (aqiData && aqiData.aqi > 200) {
@@ -248,9 +300,32 @@ function NearMe() {
 
   const handleSearch = async () => {
     if (!location.trim()) return;
+    
     try {
       setLoading(true);
       setError(null);
+      
+      // Check if the input is a coordinate format like "Lat: 13.7858, Lon: 79.1386"
+      const coordMatch = location.match(/lat:?\s*([+-]?\d+\.?\d*)\s*,\s*lon:?\s*([+-]?\d+\.?\d*)/i);
+      if (coordMatch) {
+        const lat = parseFloat(coordMatch[1]);
+        const lon = parseFloat(coordMatch[2]);
+        
+        // Check if within India rough bounds
+        if (lat >= indiaBounds[0][0] && lat <= indiaBounds[1][0] && 
+            lon >= indiaBounds[0][1] && lon <= indiaBounds[1][1]) {
+           setPosition([lat, lon]);
+           fetchAQI(lat, lon);
+           setLoading(false);
+           return;
+        } else {
+           setError("Coordinates are outside India.");
+           setAqiData(null);
+           setLoading(false);
+           return;
+        }
+      }
+
       const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=in&q=${encodeURIComponent(location)}`);
       const data = await response.json();
       if (data && data.length > 0) {
@@ -313,12 +388,13 @@ function NearMe() {
       setPosition(contextCoords);
       setLocation(contextName || "Your Location");
       setAqiData(contextAQI);
+      setViewTicket(prev => prev + 1);
     } else {
       // Fallback: trigger update if context is empty
       updateLocation();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contextCoords, initialSearch]);
+  }, [contextCoords, initialSearch, routerLoc.key]);
 
   const color = aqiData ? getAQIColor(aqiData.aqi) : "#2196f3";
 
@@ -332,8 +408,9 @@ function NearMe() {
           maxBounds={indiaBounds}
           maxBoundsViscosity={1.0}
           style={{ height: "100%", width: "100%" }} 
-          zoomControl={false}
-        >          <ChangeView center={position} zoom={10} ticket={viewTicket} />
+        >
+          <ChangeView center={position} zoom={10} ticket={viewTicket} />
+          {routeMode && <FitRouteBounds routePath={routePath} />}
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -348,6 +425,8 @@ function NearMe() {
             setLocation={setLocation} 
             routeMode={routeMode}
             setRoutePoints={setRoutePoints}
+            setStartInput={setStartInput}
+            setEndInput={setEndInput}
           />
           {routePoints.start && <Marker position={routePoints.start}><Popup>Start Point</Popup></Marker>}
           {routePoints.end && <Marker position={routePoints.end}><Popup>End Point</Popup></Marker>}
@@ -368,8 +447,13 @@ function NearMe() {
               <Popup>
                 {aqiData ? (
                   <>
-                    <strong>AQI:</strong> {aqiData.aqi}<br />
+                    <strong>Today's average AQI:</strong> {aqiData.aqi}<br />
                     <strong>PM2.5:</strong> {aqiData.pm25} µg/m³
+                    {aqiData.aqi_tomorrow !== undefined && (
+                      <>
+                        <br /><strong>Tomorrow's predicted AQI:</strong> {aqiData.aqi_tomorrow}
+                      </>
+                    )}
                   </>
                 ) : "Loading..."}
               </Popup>
@@ -465,13 +549,20 @@ function NearMe() {
                     <Box sx={{ p: 2, bgcolor: color, color: "white", display: "flex", flexDirection: "column", gap: 0.5 }}>
                       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                          AQI: {aqiData.aqi} {aqiData.category ? `(${aqiData.category})` : ""}
+                          Today's average AQI: {aqiData.aqi} {aqiData.category ? `(${aqiData.category})` : ""}
                         </Typography>
                       </Box>
                       {aqiData.pm25 !== undefined && (
                         <Typography variant="body1" sx={{ fontWeight: 500 }}>
                           PM2.5: {aqiData.pm25} µg/m³
                         </Typography>
+                      )}
+                      {aqiData.aqi_tomorrow !== undefined && (
+                        <Box sx={{ mt: 1, pt: 1, borderTop: "1px solid rgba(255,255,255,0.3)" }}>
+                          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                            Tomorrow's predicted AQI: {aqiData.aqi_tomorrow} {aqiData.category_tomorrow ? `(${aqiData.category_tomorrow})` : ""}
+                          </Typography>
+                        </Box>
                       )}
                     </Box>
                   </Card>
@@ -481,30 +572,6 @@ function NearMe() {
                       <strong>Health Advice:</strong> {aqiData.health_recommendation}
                     </Alert>
                   )}
-
-                  {historyData && historyData.length > 0 && (
-                    <Card sx={{ borderRadius: 2 }}>
-                      <CardContent sx={{ p: 1.5, pb: "12px !important" }}>
-                        <Typography variant="subtitle2" fontWeight="bold" mb={1}>30-Day AQI History</Typography>
-                        <Box sx={{ width: "100%", height: 140 }}>
-                          <ResponsiveContainer>
-                            <AreaChart data={historyData}>
-                              <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-                              <XAxis dataKey="date" tick={{fontSize: 8}} interval={4} angle={-30} textAnchor="end" height={35} />
-                              <YAxis width={30} tick={{fontSize: 10}} />
-                              <RechartsTooltip
-                                contentStyle={{fontSize: "12px", borderRadius: "8px", color: "#000"}}
-                                formatter={(value, name) => [value, name === 'aqi' ? 'AQI' : 'PM2.5']}
-                                labelFormatter={(label) => `Date: ${label}`}
-                              />
-                              <Area type="monotone" dataKey="aqi" stroke="#7c4dff" fill="#ede7f6" strokeWidth={2} name="AQI" />
-                              <Area type="monotone" dataKey="pm25" stroke="#00bcd4" fill="#e0f7fa" strokeWidth={1.5} name="PM2.5" />
-                            </AreaChart>
-                          </ResponsiveContainer>
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  )}
                   
                   {routeMode && (
                     <Card sx={{ borderRadius: 2, bgcolor: "rgba(33, 150, 243, 0.05)", border: "1px dashed #2196f3" }}>
@@ -512,14 +579,42 @@ function NearMe() {
                         <Typography variant="subtitle2" fontWeight="bold" color="primary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <DirectionsIcon fontSize="small" /> Route Air Quality
                         </Typography>
-                        <Box sx={{ mt: 1 }}>
-                          <Typography variant="body2" color="text.secondary">
-                            {!routePoints.start ? "Click on map to set Start point" : 
-                             !routePoints.end ? "Click on map to set End point" : 
+                        <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                          <TextField 
+                            size="small" 
+                            placeholder="Type start & hit Enter, or click map" 
+                            value={startInput} 
+                            onChange={e => setStartInput(e.target.value)} 
+                            onKeyDown={e => e.key === 'Enter' && geocodeAndSetPoint(startInput, 'start')}
+                            InputProps={{
+                              endAdornment: (
+                                <InputAdornment position="end">
+                                  <IconButton size="small" onClick={() => geocodeAndSetPoint(startInput, 'start')}><SearchIcon fontSize="small" /></IconButton>
+                                </InputAdornment>
+                              )
+                            }}
+                          />
+                          <TextField 
+                            size="small" 
+                            placeholder="Type end & hit Enter, or click map" 
+                            value={endInput} 
+                            onChange={e => setEndInput(e.target.value)} 
+                            onKeyDown={e => e.key === 'Enter' && geocodeAndSetPoint(endInput, 'end')}
+                            InputProps={{
+                              endAdornment: (
+                                <InputAdornment position="end">
+                                  <IconButton size="small" onClick={() => geocodeAndSetPoint(endInput, 'end')}><SearchIcon fontSize="small" /></IconButton>
+                                </InputAdornment>
+                              )
+                            }}
+                          />
+                          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                            {!routePoints.start ? "Waiting for Start point..." : 
+                             !routePoints.end ? "Waiting for End point..." : 
                              `Corridor Average AQI: ${routeAQI || "..."}`}
                           </Typography>
                           {routeAQI && (
-                            <Typography variant="caption" sx={{ color: getAQIColor(routeAQI), fontWeight: 'bold', mt: 0.5, display: 'block' }}>
+                            <Typography variant="caption" sx={{ color: getAQIColor(routeAQI), fontWeight: 'bold', display: 'block' }}>
                               Status: {routeAQI <= 100 ? "Safe Route" : "Polluted Corridor"}
                             </Typography>
                           )}

@@ -123,9 +123,11 @@ function CursorTemperatureTracker({ onHover, locations }) {
         }
 
         let aqiValue;
+        let aqiTomorrow;
         if (aqiRes.status === "fulfilled" && aqiRes.value.ok) {
           const aqiData = await aqiRes.value.json();
           aqiValue = aqiData?.aqi;
+          aqiTomorrow = aqiData?.aqi_tomorrow;
         }
         if (aqiValue === undefined || aqiValue === null) {
           aqiValue = estimateAQI(lat, lng, locations);
@@ -136,6 +138,7 @@ function CursorTemperatureTracker({ onHover, locations }) {
           lon: lng,
           temp: tempValue,
           aqi: aqiValue,
+          aqiTomorrow: aqiTomorrow,
           loading: false,
           error: null,
           updatedAt: new Date().toLocaleTimeString(),
@@ -404,7 +407,15 @@ function LiveMap() {
                   variant="body2"
                   sx={{ fontWeight: 700, color: getAQIColor(hoverWeather.aqi) }}
                 >
-                  AQI: {hoverWeather.aqi} - {getAQILabel(hoverWeather.aqi)}
+                  Today's average AQI: {hoverWeather.aqi} - {getAQILabel(hoverWeather.aqi)}
+                </Typography>
+              )}
+              {hoverWeather?.aqiTomorrow !== undefined && (
+                <Typography
+                  variant="body2"
+                  sx={{ fontWeight: 700, color: getAQIColor(hoverWeather.aqiTomorrow), mt: 0.5 }}
+                >
+                  Tomorrow's predicted AQI: {hoverWeather.aqiTomorrow} - {getAQILabel(hoverWeather.aqiTomorrow)}
                 </Typography>
               )}
               {hoverWeather.updatedAt && (

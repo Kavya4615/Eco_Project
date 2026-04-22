@@ -97,7 +97,7 @@ function Navbar() {
     { label: "Live Map", to: "/live-map" },
     { label: "Air Quality Near Me", to: "/near-me" },
     { label: "Live Rankings", to: "/ranking" },
-    { label: "Historical Data", to: "/historical" },
+    { label: "PM2.5 Forecast", to: "/historical" },
   ];
 
   const drawer = (
@@ -293,7 +293,7 @@ function Navbar() {
                   </MenuItem>
 
                   <MenuItem component={Link} to="/historical" onClick={handleAqClose} sx={{ py: 1.2, borderRadius: 1, mx: 0.5 }}>
-                    📊 Historical PM 2.5 Data
+                    📅 PM2.5 Forecast Data
                   </MenuItem>
                 </Menu>
               </Box>

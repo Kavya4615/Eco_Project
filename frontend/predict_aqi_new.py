@@ -428,30 +428,53 @@ def get_aqi_endpoint():
             aod_method = aod_data['method']
             aod_time = aod_data['timestamp_utc']
 
-        # Simplified weather fetching for today's prediction only
+        # Weather fetching for today and tomorrow's prediction
         url = (
             f"https://api.open-meteo.com/v1/forecast?"
             f"latitude={lat}&longitude={lon}"
             f"&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,precipitation,pressure_msl,cloud_cover"
-            f"&forecast_days=1"
+            f"&forecast_days=2"
         )
 
         weather_res = requests.get(url).json()
         hourly = weather_res.get("hourly", {})
         
+        def get_avg(key, default_val, start, end):
+            data = hourly.get(key, [])
+            if len(data) >= end:
+                # filter out None values before summing
+                valid_data = [x for x in data[start:end] if x is not None]
+                if len(valid_data) > 0:
+                    return sum(valid_data) / len(valid_data)
+            return default_val
+
         weather_today = {
-            "Temp_2m_C": sum(hourly.get("temperature_2m", [25])[:24]) / 24,
-            "Humidity_Percent": sum(hourly.get("relative_humidity_2m", [50])[:24]) / 24,
-            "Wind_Speed_10m_kmh": sum(hourly.get("wind_speed_10m", [10])[:24]) / 24,
-            "Wind_Dir_10m": sum(hourly.get("wind_direction_10m", [180])[:24]) / 24,
-            "Precipitation_mm": sum(hourly.get("precipitation", [0])[:24]) / 24,
-            "Pressure_MSL_hPa": sum(hourly.get("pressure_msl", [1010])[:24]) / 24,
-            "Cloud_Cover_Percent": sum(hourly.get("cloud_cover", [10])[:24]) / 24
+            "Temp_2m_C": get_avg("temperature_2m", 25, 0, 24),
+            "Humidity_Percent": get_avg("relative_humidity_2m", 50, 0, 24),
+            "Wind_Speed_10m_kmh": get_avg("wind_speed_10m", 10, 0, 24),
+            "Wind_Dir_10m": get_avg("wind_direction_10m", 180, 0, 24),
+            "Precipitation_mm": get_avg("precipitation", 0, 0, 24),
+            "Pressure_MSL_hPa": get_avg("pressure_msl", 1010, 0, 24),
+            "Cloud_Cover_Percent": get_avg("cloud_cover", 10, 0, 24)
+        }
+        
+        weather_tomorrow = {
+            "Temp_2m_C": get_avg("temperature_2m", 25, 24, 48),
+            "Humidity_Percent": get_avg("relative_humidity_2m", 50, 24, 48),
+            "Wind_Speed_10m_kmh": get_avg("wind_speed_10m", 10, 24, 48),
+            "Wind_Dir_10m": get_avg("wind_direction_10m", 180, 24, 48),
+            "Precipitation_mm": get_avg("precipitation", 0, 24, 48),
+            "Pressure_MSL_hPa": get_avg("pressure_msl", 1010, 24, 48),
+            "Cloud_Cover_Percent": get_avg("cloud_cover", 10, 24, 48)
         }
 
         row_df = pd.DataFrame([{"Latitude": lat, "Longitude": lon, "AOD": aod_today, **weather_today}])[features]
         pm25_today = max(0.0, model.predict(row_df)[0])
         aqi_today, cat_today = calculate_indian_aqi(pm25_today)
+        
+        row_df_tomorrow = pd.DataFrame([{"Latitude": lat, "Longitude": lon, "AOD": aod_tomorrow, **weather_tomorrow}])[features]
+        pm25_tomorrow = max(0.0, model.predict(row_df_tomorrow)[0])
+        aqi_tomorrow, cat_tomorrow = calculate_indian_aqi(pm25_tomorrow)
 
         # Simplified Health Recommendation
         health_condition = request.args.get('healthCondition') or 'Normal'
@@ -470,6 +493,9 @@ def get_aqi_endpoint():
             'aqi': aqi_today,
             'pm25': round(pm25_today, 2),
             'category': cat_today,
+            'aqi_tomorrow': aqi_tomorrow,
+            'pm25_tomorrow': round(pm25_tomorrow, 2),
+            'category_tomorrow': cat_tomorrow,
             'aod': aod_today,
             'aod_method': aod_method,
             'aod_time': aod_time,
