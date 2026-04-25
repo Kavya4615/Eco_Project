@@ -35,15 +35,10 @@ function getAQILabel(aqi) {
 import { useLocationData } from "../context/LocationContext";
 
 function Ranking() {
-  const { rankingData, updateRankings } = useLocationData();
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (rankingData.length === 0) {
-      setLoading(true);
-      updateRankings().then(() => setLoading(false));
-    }
-  }, [rankingData, updateRankings]);
+  const { rankingData, rankLastUpdated } = useLocationData();
+  
+  // Data is syncing if the initial fetch hasn't completed yet
+  const loading = !rankLastUpdated;
 
   const sortedCities = [...rankingData].sort((a, b) => {
     if (a.aqi === "-") return 1;

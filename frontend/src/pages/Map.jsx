@@ -1,11 +1,13 @@
-import { Box, Typography, Card, CardContent, Button } from "@mui/material";
+import { Box, Typography, Card, CardContent, Button, IconButton, Tooltip as MuiTooltip } from "@mui/material";
 import { useEffect, useState, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { MapContainer, TileLayer, Circle, Polygon } from "react-leaflet";
 import { fullWorldAndIndiaMask } from "../data/indiaMask";
 import { motion } from "framer-motion";
 import DragHandleIcon from "@mui/icons-material/DragHandle";
 import WhatshotIcon from "@mui/icons-material/Whatshot";
+import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
+import NavigationIcon from "@mui/icons-material/Navigation";
 import "leaflet/dist/leaflet.css";
 
 const indiaBounds = [
@@ -77,6 +79,17 @@ function MapView() {
   const { coords, locationName, aqiData, heatmapPoints: points, heatmapStatus: loadingMsg } = useLocationData();
   const [position, setPosition] = useState(coords || [20.5937, 78.9629]);
   const [showHeatmap, setShowHeatmap] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const navigate = useNavigate();
+
+  const requestNotificationPermission = async () => {
+    if ("Notification" in window) {
+      const permission = await Notification.requestPermission();
+      if (permission === "granted") {
+        setNotificationsEnabled(true);
+      }
+    }
+  };
 
   useEffect(() => {
     if (coords) {
@@ -126,7 +139,7 @@ function MapView() {
               }
             }}
           >
-            {showHeatmap ? "Heatmap: ON" : "Heatmap: OFF"}
+            {showHeatmap ? "AQI Heatmap: ON" : "AQI Heatmap: OFF"}
           </Button>
         </Box>
       </Box>
@@ -253,6 +266,40 @@ function MapView() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Map Controls */}
+      <Box sx={{ position: "absolute", bottom: 40, right: 24, zIndex: 1000, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <MuiTooltip title="Enable AQI Alerts" placement="left">
+          <IconButton 
+            onClick={notificationsEnabled ? () => setNotificationsEnabled(false) : requestNotificationPermission}
+            sx={{ 
+              bgcolor: notificationsEnabled ? "#d32f2f" : "white", 
+              color: notificationsEnabled ? "white" : "#d32f2f",
+              boxShadow: 3,
+              '&:hover': { bgcolor: notificationsEnabled ? "#b71c1c" : "#f5f5f5" }
+            }}
+          >
+            <NotificationsActiveIcon />
+          </IconButton>
+        </MuiTooltip>
+
+        <MuiTooltip title="Route Air Quality Planner" placement="left">
+          <IconButton 
+            onClick={() => {
+              navigate('/near-me', { state: { openRoutePlanner: true } });
+            }}
+            sx={{ 
+              bgcolor: "white", 
+              color: "#2196f3",
+              boxShadow: 3,
+              '&:hover': { bgcolor: "#f5f5f5" }
+            }}
+          >
+            <NavigationIcon sx={{ transform: 'rotate(45deg)' }} />
+          </IconButton>
+        </MuiTooltip>
+      </Box>
+
     </Box>
   );
 }

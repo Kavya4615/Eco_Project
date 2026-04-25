@@ -37,20 +37,21 @@ function isWithinIndiaBounds(lat, lon) {
   );
 }
 
-function estimateAQI(lat, lon, locations) {
+function estimateValue(lat, lon, locations, key) {
   const weighted = locations.reduce(
     (acc, loc) => {
+      if (loc[key] === undefined) return acc;
       const dx = lat - loc.lat;
       const dy = lon - loc.lon;
       const distance = Math.max(Math.sqrt(dx * dx + dy * dy), 0.15);
       const weight = 1 / (distance * distance);
-      acc.value += loc.aqi * weight;
+      acc.value += loc[key] * weight;
       acc.weight += weight;
       return acc;
     },
     { value: 0, weight: 0 }
   );
-  return Math.round(weighted.value / weighted.weight);
+  return weighted.weight > 0 ? Math.round(weighted.value / weighted.weight) : 0;
 }
 
 function isPointInPolygon(lat, lon, polygon) {
@@ -75,6 +76,14 @@ function getAQIColor(aqi) {
   if (aqi <= 200) return "#f44336";
   if (aqi <= 300) return "#9c27b0";
   return "#800000";
+}
+
+function getTempColor(temp) {
+  if (temp <= 15) return "#2196f3"; // Cold (Blue)
+  if (temp <= 25) return "#4caf50"; // Cool (Green)
+  if (temp <= 30) return "#ffeb3b"; // Warm (Yellow)
+  if (temp <= 35) return "#ff9800"; // Hot (Orange)
+  return "#f44336"; // Very Hot (Red)
 }
 
 function getAQILabel(aqi) {
@@ -131,7 +140,7 @@ function CursorTemperatureTracker({ onHover, locations }) {
           aqiTomorrow = aqiData?.aqi_tomorrow;
         }
         if (aqiValue === undefined || aqiValue === null) {
-          aqiValue = estimateAQI(lat, lng, locations);
+          aqiValue = estimateValue(lat, lng, locations, "aqi");
         }
 
         onHover({
@@ -150,7 +159,7 @@ function CursorTemperatureTracker({ onHover, locations }) {
           lon: lng,
           loading: false,
           error: "Unable to load temperature right now",
-          aqi: estimateAQI(lat, lng, locations),
+          aqi: estimateValue(lat, lng, locations, "aqi"),
         });
       }
     },
@@ -164,10 +173,12 @@ function CursorTemperatureTracker({ onHover, locations }) {
 
 function LiveMap() {
   const { heatmapPoints: locations, heatmapStatus: loadingMsg } = useLocationData();
-  const [showHeatmap, setShowHeatmap] = useState(false);
+  const [heatmapMode, setHeatmapMode] = useState("none"); // 'none', 'aqi', 'temp'
   const [hoverWeather, setHoverWeather] = useState(null);
   const maskOuterRing = useMemo(() => worldMaskRing, []);
+  
   const heatmapPoints = useMemo(() => {
+    if (heatmapMode === "none") return [];
     const points = [];
     const latStep = 0.62;
     const lonStep = 0.62;
@@ -177,12 +188,12 @@ function LiveMap() {
           key: `${lat.toFixed(2)}-${lon.toFixed(2)}`,
           lat,
           lon,
-          aqi: estimateAQI(lat, lon, locations),
+          val: estimateValue(lat, lon, locations, heatmapMode),
         });
       }
     }
     return points.filter((pt) => isPointInPolygon(pt.lat, pt.lon, indiaPolygon));
-  }, [locations]);
+  }, [locations, heatmapMode]);
 
   return (
     <Box sx={{ maxWidth: 1400, mx: "auto", px: { xs: 2, md: 4 }, py: { xs: 2, md: 4 } }}>
@@ -216,13 +227,19 @@ function LiveMap() {
 
         {/* Legend */}
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", justifyContent: "flex-end" }}>
-          {[
+          {(heatmapMode === "temp" ? [
+            { label: "Cold (≤15°C)", color: "#2196f3" },
+            { label: "Cool (16–25°C)", color: "#4caf50" },
+            { label: "Warm (26–30°C)", color: "#ffeb3b" },
+            { label: "Hot (31–35°C)", color: "#ff9800" },
+            { label: "Very Hot (>35°C)", color: "#f44336" },
+          ] : [
             { label: "Good (0–50)", color: "#4caf50" },
             { label: "Moderate (51–100)", color: "#ffeb3b" },
             { label: "Unhealthy SG (101–150)", color: "#ff9800" },
             { label: "Unhealthy (151–200)", color: "#f44336" },
             { label: "Very Unhealthy (201–300)", color: "#9c27b0" },
-          ].map((item) => (
+          ]).map((item) => (
             <Chip
               key={item.label}
               label={item.label}
@@ -249,29 +266,51 @@ function LiveMap() {
         }}
       >
         <Box sx={{ position: "relative", height: "82vh", width: "100%" }}>
-          {/* Floating Heatmap Toggle (Sticky) */}
+          {/* Floating Heatmap Toggles (Sticky) */}
           <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: "100%", pointerEvents: "none", zIndex: 1000 }}>
-            <Box sx={{ position: "sticky", top: 84, pt: 2.5, pl: 10, display: "flex", justifyContent: "flex-start", pointerEvents: "auto" }}>
+            <Box sx={{ position: "sticky", top: 84, pt: 2.5, pl: { xs: 2, md: 10 }, display: "flex", gap: 2, justifyContent: "flex-start", pointerEvents: "auto" }}>
               <Button
-                variant={showHeatmap ? "contained" : "outlined"}
-                startIcon={showHeatmap ? <WhatshotIcon /> : <ThermostatIcon />}
-                onClick={() => setShowHeatmap((prev) => !prev)}
+                variant={heatmapMode === "aqi" ? "contained" : "outlined"}
+                startIcon={heatmapMode === "aqi" ? <WhatshotIcon /> : <ThermostatIcon />}
+                onClick={() => setHeatmapMode((prev) => prev === "aqi" ? "none" : "aqi")}
                 sx={{
                   borderRadius: 8,
                   px: 3,
                   py: 1,
-                  backgroundColor: showHeatmap ? "#f44336" : "rgba(255,255,255,0.95)",
-                  color: showHeatmap ? "white" : "#f44336",
+                  backgroundColor: heatmapMode === "aqi" ? "#f44336" : "rgba(255,255,255,0.95)",
+                  color: heatmapMode === "aqi" ? "white" : "#f44336",
                   fontWeight: 800,
                   backdropFilter: "blur(8px)",
                   boxShadow: "0 6px 16px rgba(0,0,0,0.12)",
                   border: "1px solid rgba(244,67,54,0.3)",
                   "&:hover": {
-                    backgroundColor: showHeatmap ? "#d32f2f" : "white",
+                    backgroundColor: heatmapMode === "aqi" ? "#d32f2f" : "white",
                   }
                 }}
               >
-                {showHeatmap ? "Heatmap: ON" : "Heatmap: OFF"}
+                {heatmapMode === "aqi" ? "AQI Heatmap: ON" : "AQI Heatmap: OFF"}
+              </Button>
+
+              <Button
+                variant={heatmapMode === "temp" ? "contained" : "outlined"}
+                startIcon={<ThermostatIcon />}
+                onClick={() => setHeatmapMode((prev) => prev === "temp" ? "none" : "temp")}
+                sx={{
+                  borderRadius: 8,
+                  px: 3,
+                  py: 1,
+                  backgroundColor: heatmapMode === "temp" ? "#ff9800" : "rgba(255,255,255,0.95)",
+                  color: heatmapMode === "temp" ? "white" : "#ff9800",
+                  fontWeight: 800,
+                  backdropFilter: "blur(8px)",
+                  boxShadow: "0 6px 16px rgba(0,0,0,0.12)",
+                  border: "1px solid rgba(255,152,0,0.3)",
+                  "&:hover": {
+                    backgroundColor: heatmapMode === "temp" ? "#f57c00" : "white",
+                  }
+                }}
+              >
+                {heatmapMode === "temp" ? "Temp Heatmap: ON" : "Temp Heatmap: OFF"}
               </Button>
             </Box>
           </Box>
@@ -297,15 +336,15 @@ function LiveMap() {
               pathOptions={{ fillColor: "#f0f2f5", fillOpacity: 1, stroke: true, color: "#78909c", weight: 2 }}
             />
 
-            {showHeatmap
+            {heatmapMode !== "none"
               ? heatmapPoints.flatMap((pt) => ([
                   <Circle
                     key={`${pt.key}-outer`}
                     center={[pt.lat, pt.lon]}
                     radius={76000}
                     pathOptions={{
-                      color: getAQIColor(pt.aqi),
-                      fillColor: getAQIColor(pt.aqi),
+                      color: heatmapMode === "temp" ? getTempColor(pt.val) : getAQIColor(pt.val),
+                      fillColor: heatmapMode === "temp" ? getTempColor(pt.val) : getAQIColor(pt.val),
                       fillOpacity: 0.08,
                       weight: 0,
                     }}
@@ -315,8 +354,8 @@ function LiveMap() {
                     center={[pt.lat, pt.lon]}
                     radius={42000}
                     pathOptions={{
-                      color: getAQIColor(pt.aqi),
-                      fillColor: getAQIColor(pt.aqi),
+                      color: heatmapMode === "temp" ? getTempColor(pt.val) : getAQIColor(pt.val),
+                      fillColor: heatmapMode === "temp" ? getTempColor(pt.val) : getAQIColor(pt.val),
                       fillOpacity: 0.14,
                       weight: 0,
                     }}
@@ -324,14 +363,14 @@ function LiveMap() {
                 ]))
               : null}
 
-            {!showHeatmap && (
+            {heatmapMode === "none" && (
               <CursorTemperatureTracker onHover={setHoverWeather} locations={locations} />
             )}
           </MapContainer>
         </Box>
       </Card>
 
-      {!showHeatmap && (
+      {!heatmapMode || heatmapMode === "none" ? (
         <Card
           sx={{
             position: "fixed",
@@ -392,7 +431,7 @@ function LiveMap() {
             </>
           ) : null}
         </Card>
-      )}
+      ) : null}
     </Box>
   );
 }

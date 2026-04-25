@@ -6,7 +6,15 @@ export const LocationProvider = ({ children }) => {
   const [coords, setCoords] = useState(null);
   const [locationName, setLocationName] = useState("");
   const [aqiData, setAqiData] = useState(null);
-  const [rankingData, setRankingData] = useState([]);
+  const defaultRankCities = [
+    { city: "Delhi", lat: 28.61, lon: 77.2, aqi: "-" },
+    { city: "Mumbai", lat: 19.07, lon: 72.87, aqi: "-" },
+    { city: "Kolkata", lat: 22.57, lon: 88.36, aqi: "-" },
+    { city: "Chennai", lat: 13.08, lon: 80.27, aqi: "-" },
+    { city: "Bengaluru", lat: 12.97, lon: 77.59, aqi: "-" },
+    { city: "Lucknow", lat: 26.84, lon: 80.94, aqi: "-" },
+  ];
+  const [rankingData, setRankingData] = useState(defaultRankCities);
   const [historicalData, setHistoricalData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -14,18 +22,22 @@ export const LocationProvider = ({ children }) => {
   const [histLastUpdated, setHistLastUpdated] = useState(null);
 
   const [heatmapPoints, setHeatmapPoints] = useState([
-    { city: "Delhi", lat: 28.61, lon: 77.2, aqi: 210 },
-    { city: "Mumbai", lat: 19.07, lon: 72.87, aqi: 140 },
-    { city: "Chennai", lat: 13.08, lon: 80.27, aqi: 95 },
-    { city: "Kolkata", lat: 22.57, lon: 88.36, aqi: 180 },
-    { city: "Guwahati", lat: 26.14, lon: 91.74, aqi: 132 },
-    { city: "Shillong", lat: 25.58, lon: 91.89, aqi: 96 },
-    { city: "Itanagar", lat: 27.09, lon: 93.62, aqi: 84 },
-    { city: "Bangalore", lat: 12.97, lon: 77.59, aqi: 80 },
-    { city: "Hyderabad", lat: 17.38, lon: 78.48, aqi: 110 },
-    { city: "Jaipur", lat: 26.91, lon: 75.78, aqi: 150 },
-    { city: "Bhopal", lat: 23.25, lon: 77.41, aqi: 120 },
-    { city: "Lucknow", lat: 26.84, lon: 80.94, aqi: 190 },
+    { city: "Delhi", lat: 28.61, lon: 77.2, aqi: 210, temp: 30 },
+    { city: "Srinagar", lat: 34.08, lon: 74.79, aqi: 60, temp: 15 },
+    { city: "Leh", lat: 34.15, lon: 77.57, aqi: 40, temp: 5 },
+    { city: "Mumbai", lat: 19.07, lon: 72.87, aqi: 140, temp: 32 },
+    { city: "Ahmedabad", lat: 23.02, lon: 72.57, aqi: 160, temp: 36 },
+    { city: "Chennai", lat: 13.08, lon: 80.27, aqi: 95, temp: 35 },
+    { city: "Thiruvananthapuram", lat: 8.52, lon: 76.93, aqi: 60, temp: 31 },
+    { city: "Kolkata", lat: 22.57, lon: 88.36, aqi: 180, temp: 33 },
+    { city: "Guwahati", lat: 26.14, lon: 91.74, aqi: 132, temp: 28 },
+    { city: "Shillong", lat: 25.58, lon: 91.89, aqi: 96, temp: 20 },
+    { city: "Itanagar", lat: 27.09, lon: 93.62, aqi: 84, temp: 22 },
+    { city: "Bangalore", lat: 12.97, lon: 77.59, aqi: 80, temp: 27 },
+    { city: "Hyderabad", lat: 17.38, lon: 78.48, aqi: 110, temp: 34 },
+    { city: "Jaipur", lat: 26.91, lon: 75.78, aqi: 150, temp: 31 },
+    { city: "Bhopal", lat: 23.25, lon: 77.41, aqi: 120, temp: 32 },
+    { city: "Lucknow", lat: 26.84, lon: 80.94, aqi: 190, temp: 31 },
   ]);
   const [heatmapStatus, setHeatmapStatus] = useState("");
   const [heatmapFetched, setHeatmapFetched] = useState(false);
@@ -53,25 +65,16 @@ export const LocationProvider = ({ children }) => {
   };
 
   const updateRankings = useCallback(async (force = false) => {
-    if (!force && rankingData.length > 0 && rankLastUpdated && (Date.now() - rankLastUpdated < 300000)) return;
+    if (!force && rankLastUpdated && (Date.now() - rankLastUpdated < 300000)) return;
 
-    const defaultCities = [
-      { city: "Delhi", lat: 28.61, lon: 77.2 },
-      { city: "Mumbai", lat: 19.07, lon: 72.87 },
-      { city: "Kolkata", lat: 22.57, lon: 88.36 },
-      { city: "Chennai", lat: 13.08, lon: 80.27 },
-      { city: "Bengaluru", lat: 12.97, lon: 77.59 },
-      { city: "Lucknow", lat: 26.84, lon: 80.94 },
-    ];
-
-    const updated = [];
-    for (const loc of defaultCities) {
+    const updated = await Promise.all(defaultRankCities.map(async (loc) => {
       const data = await fetchAQI(loc.lat, loc.lon);
-      updated.push({ ...loc, aqi: data ? data.aqi : "-" });
-    }
+      return { ...loc, aqi: data ? data.aqi : "-" };
+    }));
+    
     setRankingData(updated);
     setRankLastUpdated(Date.now());
-  }, [rankingData, rankLastUpdated]);
+  }, [rankLastUpdated]);
 
   const updateHistorical = useCallback(async (force = false, baseCoords = null) => {
     if (!force && historicalData.length > 0 && histLastUpdated && (Date.now() - histLastUpdated < 300000)) return;
@@ -101,8 +104,12 @@ export const LocationProvider = ({ children }) => {
     
     const currentPoints = [
       { city: "Delhi", lat: 28.61, lon: 77.2 },
+      { city: "Srinagar", lat: 34.08, lon: 74.79 },
+      { city: "Leh", lat: 34.15, lon: 77.57 },
       { city: "Mumbai", lat: 19.07, lon: 72.87 },
+      { city: "Ahmedabad", lat: 23.02, lon: 72.57 },
       { city: "Chennai", lat: 13.08, lon: 80.27 },
+      { city: "Thiruvananthapuram", lat: 8.52, lon: 76.93 },
       { city: "Kolkata", lat: 22.57, lon: 88.36 },
       { city: "Guwahati", lat: 26.14, lon: 91.74 },
       { city: "Shillong", lat: 25.58, lon: 91.89 },
@@ -117,11 +124,30 @@ export const LocationProvider = ({ children }) => {
     for (let i = 0; i < currentPoints.length; i++) {
       setHeatmapStatus(`Heatmap Syncing: ${currentPoints[i].city}`);
       try {
-        const data = await fetchAQI(currentPoints[i].lat, currentPoints[i].lon);
-        if (data && data.aqi !== undefined) {
+        const [aqiRes, tempRes] = await Promise.allSettled([
+          fetchAQI(currentPoints[i].lat, currentPoints[i].lon),
+          fetch(`https://api.open-meteo.com/v1/forecast?latitude=${currentPoints[i].lat}&longitude=${currentPoints[i].lon}&current=temperature_2m`)
+        ]);
+
+        let newAqi;
+        if (aqiRes.status === "fulfilled" && aqiRes.value && aqiRes.value.aqi !== undefined) {
+          newAqi = aqiRes.value.aqi;
+        }
+
+        let newTemp;
+        if (tempRes.status === "fulfilled" && tempRes.value.ok) {
+          const weatherData = await tempRes.value.json();
+          newTemp = weatherData?.current?.temperature_2m;
+        }
+
+        if (newAqi !== undefined || newTemp !== undefined) {
           setHeatmapPoints((prev) => {
             const copy = [...prev];
-            copy[i] = { ...copy[i], aqi: data.aqi };
+            copy[i] = { 
+              ...copy[i], 
+              ...(newAqi !== undefined && { aqi: newAqi }),
+              ...(newTemp !== undefined && { temp: newTemp })
+            };
             return copy;
           });
         }
@@ -181,7 +207,7 @@ export const LocationProvider = ({ children }) => {
   return (
     <LocationContext.Provider value={{ 
       coords, locationName, aqiData, loading, updateLocation,
-      rankingData, updateRankings,
+      rankingData, updateRankings, rankLastUpdated,
       historicalData, updateHistorical,
       heatmapPoints, heatmapStatus, updateHeatmapPoints
     }}>

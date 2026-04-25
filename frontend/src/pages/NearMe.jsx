@@ -81,7 +81,7 @@ function FitRouteBounds({ routePath }) {
   return null;
 }
 
-function MapClickPinpoint({ setPosition, fetchAQI, setLocation, routeMode, setRoutePoints, setStartInput, setEndInput, disabled }) {
+function MapClickPinpoint({ setPosition, fetchAQI, setLocation, routeMode, setRoutePoints, setStartInput, setEndInput, disabled, setRoutePath, setRouteAQI }) {
   useMapEvents({
     click(e) {
       if (disabled) return;
@@ -104,6 +104,13 @@ function MapClickPinpoint({ setPosition, fetchAQI, setLocation, routeMode, setRo
         setPosition([lat, lng]);
         setLocation(`Lat: ${lat.toFixed(4)}, Lon: ${lng.toFixed(4)}`);
         fetchAQI(lat, lng);
+        
+        // Clear route states if any leftover path exists
+        if (setRoutePoints) setRoutePoints({ start: null, end: null });
+        if (setStartInput) setStartInput("");
+        if (setEndInput) setEndInput("");
+        if (setRoutePath) setRoutePath([]);
+        if (setRouteAQI) setRouteAQI(null);
       }
     },
   });
@@ -166,6 +173,7 @@ function NearMe() {
   const routerLoc = useRouterLocation();
   const navigate = useNavigate();
   const initialSearch = routerLoc.state?.initialSearch || "";
+  const openRoutePlanner = routerLoc.state?.openRoutePlanner || false;
   const { coords: contextCoords, locationName: contextName, aqiData: contextAQI, updateLocation, heatmapPoints } = useLocationData();
 
   const [location, setLocation] = useState(initialSearch);
@@ -177,7 +185,7 @@ function NearMe() {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [historyData, setHistoryData] = useState(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [routeMode, setRouteMode] = useState(false);
+  const [routeMode, setRouteMode] = useState(openRoutePlanner);
   const [routePoints, setRoutePoints] = useState({ start: null, end: null });
   const [routeAQI, setRouteAQI] = useState(null);
   const [routePath, setRoutePath] = useState([]);
@@ -485,7 +493,7 @@ function NearMe() {
               }
             }}
           >
-            {showHeatmap ? "Heatmap: ON" : "Heatmap: OFF"}
+            {showHeatmap ? "AQI Heatmap: ON" : "AQI Heatmap: OFF"}
           </Button>
         </Box>
       </Box>
@@ -520,6 +528,8 @@ function NearMe() {
             setStartInput={setStartInput}
             setEndInput={setEndInput}
             disabled={false}
+            setRoutePath={setRoutePath}
+            setRouteAQI={setRouteAQI}
           />
           {showHeatmap && interpolatedHeatmapPoints
             ? interpolatedHeatmapPoints.flatMap((pt) => ([
@@ -582,6 +592,7 @@ function NearMe() {
       </Box>
 
       {/* Search Panel Overlay */}
+      {!routeMode && (
         <motion.div
           drag
           dragMomentum={false}
@@ -692,55 +703,6 @@ function NearMe() {
                     </Alert>
                   )}
                   
-                  {routeMode && (
-                    <Card sx={{ borderRadius: 2, bgcolor: "rgba(33, 150, 243, 0.05)", border: "1px dashed #2196f3" }}>
-                      <CardContent sx={{ p: 2 }}>
-                        <Typography variant="subtitle2" fontWeight="bold" color="primary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <DirectionsIcon fontSize="small" /> Route Air Quality
-                        </Typography>
-                        <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                          <TextField 
-                            size="small" 
-                            placeholder="Type start & hit Enter, or click map" 
-                            value={startInput} 
-                            onChange={e => setStartInput(e.target.value)} 
-                            onKeyDown={e => e.key === 'Enter' && geocodeAndSetPoint(startInput, 'start')}
-                            InputProps={{
-                              endAdornment: (
-                                <InputAdornment position="end">
-                                  <IconButton size="small" onClick={() => geocodeAndSetPoint(startInput, 'start')}><SearchIcon fontSize="small" /></IconButton>
-                                </InputAdornment>
-                              )
-                            }}
-                          />
-                          <TextField 
-                            size="small" 
-                            placeholder="Type end & hit Enter, or click map" 
-                            value={endInput} 
-                            onChange={e => setEndInput(e.target.value)} 
-                            onKeyDown={e => e.key === 'Enter' && geocodeAndSetPoint(endInput, 'end')}
-                            InputProps={{
-                              endAdornment: (
-                                <InputAdornment position="end">
-                                  <IconButton size="small" onClick={() => geocodeAndSetPoint(endInput, 'end')}><SearchIcon fontSize="small" /></IconButton>
-                                </InputAdornment>
-                              )
-                            }}
-                          />
-                          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                            {!routePoints.start ? "Waiting for Start point..." : 
-                             !routePoints.end ? "Waiting for End point..." : 
-                             `Corridor Average AQI: ${routeAQI || "..."}`}
-                          </Typography>
-                          {routeAQI && (
-                            <Typography variant="caption" sx={{ color: getAQIColor(routeAQI), fontWeight: 'bold', display: 'block' }}>
-                              Status: {routeAQI <= 100 ? "Safe Route" : "Polluted Corridor"}
-                            </Typography>
-                          )}
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  )}
                 </Box>
               </Fade>
             )}
@@ -752,6 +714,116 @@ function NearMe() {
             )}
           </Paper>
         </motion.div>
+      )}
+
+      {/* Standalone Route Planner Overlay */}
+      {routeMode && (
+        <motion.div
+          drag
+          dragMomentum={false}
+          dragElastic={0.1}
+          style={{
+            position: "absolute",
+            top: 24,
+            left: "50%",
+            zIndex: 1000,
+            x: "-50%",
+            width: "90%",
+            maxWidth: "400px",
+            cursor: "grab",
+          }}
+          whileDrag={{ cursor: "grabbing", scale: 1.02 }}
+        >
+          <Paper
+            elevation={6}
+            sx={{
+              p: 2,
+              pt: 1,
+              borderRadius: 4,
+              position: "relative",
+              width: "100%",
+              background: isDark ? "rgba(26, 29, 40, 0.95)" : "rgba(255,255,255,0.95)",
+              backdropFilter: "blur(12px)",
+              border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(33, 150, 243, 0.5)",
+              boxShadow: "0 8px 32px rgba(33, 150, 243, 0.2)",
+            }}
+          >
+            {/* Drag Handle UI */}
+            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 0.5, opacity: 0.3 }}>
+              <DragHandleIcon fontSize="small" />
+            </Box>
+
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
+              <Typography variant="subtitle1" fontWeight="bold" color="primary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <DirectionsIcon /> Route Air Quality
+              </Typography>
+              <IconButton
+                size="small"
+                onClick={() => {
+                  setRouteMode(false);
+                  setRoutePoints({ start: null, end: null });
+                  setRouteAQI(null);
+                  setRoutePath([]);
+                  setStartInput("");
+                  setEndInput("");
+                }}
+              >
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </Box>
+            
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <TextField 
+                size="small" 
+                placeholder="Type start & hit Enter, or click map" 
+                value={startInput} 
+                onChange={e => setStartInput(e.target.value)} 
+                onKeyDown={e => e.key === 'Enter' && geocodeAndSetPoint(startInput, 'start')}
+              />
+              <TextField 
+                size="small" 
+                placeholder="Type end & hit Enter, or click map" 
+                value={endInput} 
+                onChange={e => setEndInput(e.target.value)} 
+                onKeyDown={e => e.key === 'Enter' && geocodeAndSetPoint(endInput, 'end')}
+              />
+              <Button 
+                variant="contained" 
+                size="small" 
+                fullWidth 
+                onClick={async () => {
+                  if (startInput && !routePoints.start) await geocodeAndSetPoint(startInput, 'start');
+                  if (endInput && !routePoints.end) await geocodeAndSetPoint(endInput, 'end');
+                  
+                  if (startInput && endInput && routePoints.start && routePoints.end) {
+                    calculateRouteAQI();
+                  }
+                }}
+                sx={{ mt: 0.5, bgcolor: "#2196f3", color: "white", fontWeight: "bold" }}
+              >
+                Calculate Optimal Route
+              </Button>
+              
+              {loading && (
+                <Box sx={{ display: "flex", justifyContent: "center", mt: 1 }}>
+                  <CircularProgress size={20} />
+                </Box>
+              )}
+
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, textAlign: "center" }}>
+                {!routePoints.start ? "Waiting for Start point..." : 
+                 !routePoints.end ? "Waiting for End point..." : 
+                 `Corridor Average AQI: ${routeAQI || "..."}`}
+              </Typography>
+              {routeAQI && (
+                <Typography variant="subtitle2" sx={{ color: getAQIColor(routeAQI), fontWeight: 'bold', textAlign: "center", display: 'block' }}>
+                  Status: {routeAQI <= 100 ? "Safe Route" : "Polluted Corridor"}
+                </Typography>
+              )}
+            </Box>
+          </Paper>
+        </motion.div>
+      )}
 
       <Snackbar 
         open={snackbarOpen} 
@@ -794,10 +866,14 @@ function NearMe() {
         <MuiTooltip title={routeMode ? "Exit Route Planner" : "Route Air Quality Planner"} placement="left">
           <IconButton 
             onClick={() => {
-              setRouteMode(!routeMode);
-              if (!routeMode) {
+              const newMode = !routeMode;
+              setRouteMode(newMode);
+              if (!newMode) {
                 setRoutePoints({ start: null, end: null });
                 setRouteAQI(null);
+                setRoutePath([]);
+                setStartInput("");
+                setEndInput("");
               }
             }}
             sx={{ 

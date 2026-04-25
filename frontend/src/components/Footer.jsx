@@ -1,4 +1,5 @@
-import { Box, Typography, Link, IconButton } from "@mui/material";
+import { Box, Typography, Link as MuiLink, IconButton } from "@mui/material";
+import { Link as RouterLink } from "react-router-dom";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 
@@ -44,18 +45,18 @@ function Footer() {
 
         {/* Links */}
         <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
-          <Link href="/" sx={{ color: "rgba(255,255,255,0.7)", "&:hover": { color: "#43e97b" }, transition: "0.2s" }}>
+          <MuiLink component={RouterLink} to="/" sx={{ color: "rgba(255,255,255,0.7)", "&:hover": { color: "#43e97b" }, transition: "0.2s" }}>
             Home
-          </Link>
-          <Link href="/near-me" sx={{ color: "rgba(255,255,255,0.7)", "&:hover": { color: "#43e97b" }, transition: "0.2s" }}>
+          </MuiLink>
+          <MuiLink component={RouterLink} to="/near-me" sx={{ color: "rgba(255,255,255,0.7)", "&:hover": { color: "#43e97b" }, transition: "0.2s" }}>
             Near Me
-          </Link>
-          <Link href="/ranking" sx={{ color: "rgba(255,255,255,0.7)", "&:hover": { color: "#43e97b" }, transition: "0.2s" }}>
+          </MuiLink>
+          <MuiLink component={RouterLink} to="/ranking" sx={{ color: "rgba(255,255,255,0.7)", "&:hover": { color: "#43e97b" }, transition: "0.2s" }}>
             Rankings
-          </Link>
-          <Link href="/live-map" sx={{ color: "rgba(255,255,255,0.7)", "&:hover": { color: "#43e97b" }, transition: "0.2s" }}>
+          </MuiLink>
+          <MuiLink component={RouterLink} to="/live-map" sx={{ color: "rgba(255,255,255,0.7)", "&:hover": { color: "#43e97b" }, transition: "0.2s" }}>
             Live Map
-          </Link>
+          </MuiLink>
         </Box>
 
         {/* Social */}
