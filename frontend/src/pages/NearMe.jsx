@@ -38,6 +38,7 @@ import { motion } from "framer-motion";
 import { fullWorldAndIndiaMask } from "../data/indiaMask";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import HealthAdvisor from "../components/HealthAdvisor";
 
 // Fix for default marker icons in Leaflet
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -454,6 +455,10 @@ function NearMe() {
   useEffect(() => {
     if (initialSearch) {
       handleSearch();
+    } else if (routerLoc.state?.skipAutoLocate) {
+      // Don't auto-locate if we specifically came to search other cities
+      // Just stay at the default position (center of India)
+      return;
     } else if (contextCoords) {
       // Use cached context data
       setPosition(contextCoords);
@@ -465,7 +470,7 @@ function NearMe() {
       updateLocation();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contextCoords, initialSearch, routerLoc.key]);
+  }, [contextCoords, initialSearch, routerLoc.key, routerLoc.state?.skipAutoLocate]);
 
   const color = aqiData ? getAQIColor(aqiData.aqi) : "#2196f3";
 
@@ -846,6 +851,9 @@ function NearMe() {
           {geoError}
         </Alert>
       </Snackbar>
+
+      {/* Health & Activity Advisor */}
+      {aqiData && <HealthAdvisor aqi={aqiData.aqi} />}
 
       {/* Map Controls */}
       <Box sx={{ position: "absolute", bottom: 40, right: 24, zIndex: 1000, display: 'flex', flexDirection: 'column', gap: 2 }}>

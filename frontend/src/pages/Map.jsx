@@ -9,6 +9,7 @@ import WhatshotIcon from "@mui/icons-material/Whatshot";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import NavigationIcon from "@mui/icons-material/Navigation";
 import "leaflet/dist/leaflet.css";
+import HealthAdvisor from "../components/HealthAdvisor";
 
 const indiaBounds = [
   [6.0, 68.2],
@@ -250,6 +251,7 @@ function MapView() {
             <Button
               component={Link}
               to="/near-me"
+              state={{ skipAutoLocate: true }}
               variant="contained"
               size="small"
               fullWidth
@@ -266,6 +268,9 @@ function MapView() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Health & Activity Advisor */}
+      {aqiData && <HealthAdvisor aqi={aqiData.aqi} />}
 
       {/* Map Controls */}
       <Box sx={{ position: "absolute", bottom: 40, right: 24, zIndex: 1000, display: 'flex', flexDirection: 'column', gap: 2 }}>

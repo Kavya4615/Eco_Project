@@ -13,6 +13,16 @@ export const LocationProvider = ({ children }) => {
     { city: "Chennai", lat: 13.08, lon: 80.27, aqi: "-" },
     { city: "Bengaluru", lat: 12.97, lon: 77.59, aqi: "-" },
     { city: "Lucknow", lat: 26.84, lon: 80.94, aqi: "-" },
+    { city: "Hyderabad", lat: 17.38, lon: 78.48, aqi: "-" },
+    { city: "Ahmedabad", lat: 23.02, lon: 72.57, aqi: "-" },
+    { city: "Jaipur", lat: 26.91, lon: 75.78, aqi: "-" },
+    { city: "Bhopal", lat: 23.25, lon: 77.41, aqi: "-" },
+    { city: "Guwahati", lat: 26.14, lon: 91.74, aqi: "-" },
+    { city: "Srinagar", lat: 34.08, lon: 74.79, aqi: "-" },
+    { city: "Thiruvananthapuram", lat: 8.52, lon: 76.93, aqi: "-" },
+    { city: "Shillong", lat: 25.58, lon: 91.89, aqi: "-" },
+    { city: "Itanagar", lat: 27.09, lon: 93.62, aqi: "-" },
+    { city: "Leh", lat: 34.15, lon: 77.57, aqi: "-" },
   ];
   const [rankingData, setRankingData] = useState(defaultRankCities);
   const [historicalData, setHistoricalData] = useState([]);
@@ -22,22 +32,22 @@ export const LocationProvider = ({ children }) => {
   const [histLastUpdated, setHistLastUpdated] = useState(null);
 
   const [heatmapPoints, setHeatmapPoints] = useState([
-    { city: "Delhi", lat: 28.61, lon: 77.2, aqi: 210, temp: 30 },
-    { city: "Srinagar", lat: 34.08, lon: 74.79, aqi: 60, temp: 15 },
-    { city: "Leh", lat: 34.15, lon: 77.57, aqi: 40, temp: 5 },
-    { city: "Mumbai", lat: 19.07, lon: 72.87, aqi: 140, temp: 32 },
-    { city: "Ahmedabad", lat: 23.02, lon: 72.57, aqi: 160, temp: 36 },
-    { city: "Chennai", lat: 13.08, lon: 80.27, aqi: 95, temp: 35 },
-    { city: "Thiruvananthapuram", lat: 8.52, lon: 76.93, aqi: 60, temp: 31 },
-    { city: "Kolkata", lat: 22.57, lon: 88.36, aqi: 180, temp: 33 },
-    { city: "Guwahati", lat: 26.14, lon: 91.74, aqi: 132, temp: 28 },
-    { city: "Shillong", lat: 25.58, lon: 91.89, aqi: 96, temp: 20 },
-    { city: "Itanagar", lat: 27.09, lon: 93.62, aqi: 84, temp: 22 },
-    { city: "Bangalore", lat: 12.97, lon: 77.59, aqi: 80, temp: 27 },
-    { city: "Hyderabad", lat: 17.38, lon: 78.48, aqi: 110, temp: 34 },
-    { city: "Jaipur", lat: 26.91, lon: 75.78, aqi: 150, temp: 31 },
-    { city: "Bhopal", lat: 23.25, lon: 77.41, aqi: 120, temp: 32 },
-    { city: "Lucknow", lat: 26.84, lon: 80.94, aqi: 190, temp: 31 },
+    { city: "Delhi", lat: 28.61, lon: 77.2, aqi: 210, aqi_tomorrow: 200, temp: 30 },
+    { city: "Srinagar", lat: 34.08, lon: 74.79, aqi: 60, aqi_tomorrow: 55, temp: 15 },
+    { city: "Leh", lat: 34.15, lon: 77.57, aqi: 40, aqi_tomorrow: 38, temp: 5 },
+    { city: "Mumbai", lat: 19.07, lon: 72.87, aqi: 140, aqi_tomorrow: 135, temp: 32 },
+    { city: "Ahmedabad", lat: 23.02, lon: 72.57, aqi: 160, aqi_tomorrow: 155, temp: 36 },
+    { city: "Chennai", lat: 13.08, lon: 80.27, aqi: 95, aqi_tomorrow: 90, temp: 35 },
+    { city: "Thiruvananthapuram", lat: 8.52, lon: 76.93, aqi: 60, aqi_tomorrow: 58, temp: 31 },
+    { city: "Kolkata", lat: 22.57, lon: 88.36, aqi: 180, aqi_tomorrow: 170, temp: 33 },
+    { city: "Guwahati", lat: 26.14, lon: 91.74, aqi: 132, aqi_tomorrow: 125, temp: 28 },
+    { city: "Shillong", lat: 25.58, lon: 91.89, aqi: 96, aqi_tomorrow: 90, temp: 20 },
+    { city: "Itanagar", lat: 27.09, lon: 93.62, aqi: 84, aqi_tomorrow: 80, temp: 22 },
+    { city: "Bangalore", lat: 12.97, lon: 77.59, aqi: 80, aqi_tomorrow: 78, temp: 27 },
+    { city: "Hyderabad", lat: 17.38, lon: 78.48, aqi: 110, aqi_tomorrow: 105, temp: 34 },
+    { city: "Jaipur", lat: 26.91, lon: 75.78, aqi: 150, aqi_tomorrow: 145, temp: 31 },
+    { city: "Bhopal", lat: 23.25, lon: 77.41, aqi: 120, aqi_tomorrow: 115, temp: 32 },
+    { city: "Lucknow", lat: 26.84, lon: 80.94, aqi: 190, aqi_tomorrow: 180, temp: 31 },
   ]);
   const [heatmapStatus, setHeatmapStatus] = useState("");
   const [heatmapFetched, setHeatmapFetched] = useState(false);
@@ -64,9 +74,7 @@ export const LocationProvider = ({ children }) => {
     }
   };
 
-  const updateRankings = useCallback(async (force = false) => {
-    if (!force && rankLastUpdated && (Date.now() - rankLastUpdated < 300000)) return;
-
+  const updateRankings = useCallback(async () => {
     const updated = await Promise.all(defaultRankCities.map(async (loc) => {
       const data = await fetchAQI(loc.lat, loc.lon);
       return { ...loc, aqi: data ? data.aqi : "-" };
@@ -74,7 +82,7 @@ export const LocationProvider = ({ children }) => {
     
     setRankingData(updated);
     setRankLastUpdated(Date.now());
-  }, [rankLastUpdated]);
+  }, []);
 
   const updateHistorical = useCallback(async (force = false, baseCoords = null) => {
     if (!force && historicalData.length > 0 && histLastUpdated && (Date.now() - histLastUpdated < 300000)) return;
@@ -99,9 +107,7 @@ export const LocationProvider = ({ children }) => {
     }
   }, [coords, historicalData, histLastUpdated]);
 
-  const updateHeatmapPoints = useCallback(async () => {
-    if (heatmapFetched) return;
-    
+  const updateHeatmapPoints = useCallback(async (isRefresh = false) => {
     const currentPoints = [
       { city: "Delhi", lat: 28.61, lon: 77.2 },
       { city: "Srinagar", lat: 34.08, lon: 74.79 },
@@ -122,16 +128,19 @@ export const LocationProvider = ({ children }) => {
     ];
 
     for (let i = 0; i < currentPoints.length; i++) {
-      setHeatmapStatus(`Heatmap Syncing: ${currentPoints[i].city}`);
+      if (!isRefresh) {
+        setHeatmapStatus(`Heatmap Syncing: ${currentPoints[i].city}`);
+      }
       try {
         const [aqiRes, tempRes] = await Promise.allSettled([
           fetchAQI(currentPoints[i].lat, currentPoints[i].lon),
           fetch(`https://api.open-meteo.com/v1/forecast?latitude=${currentPoints[i].lat}&longitude=${currentPoints[i].lon}&current=temperature_2m`)
         ]);
 
-        let newAqi;
+        let newAqi, newAqiTomorrow;
         if (aqiRes.status === "fulfilled" && aqiRes.value && aqiRes.value.aqi !== undefined) {
           newAqi = aqiRes.value.aqi;
+          newAqiTomorrow = aqiRes.value.aqi_tomorrow;
         }
 
         let newTemp;
@@ -146,6 +155,7 @@ export const LocationProvider = ({ children }) => {
             copy[i] = { 
               ...copy[i], 
               ...(newAqi !== undefined && { aqi: newAqi }),
+              ...(newAqiTomorrow !== undefined && { aqi_tomorrow: newAqiTomorrow }),
               ...(newTemp !== undefined && { temp: newTemp })
             };
             return copy;
@@ -156,13 +166,15 @@ export const LocationProvider = ({ children }) => {
       }
     }
     
-    setHeatmapStatus("100% Calculated");
-    setHeatmapFetched(true);
-    setTimeout(() => {
-      setHeatmapStatus("");
-    }, 2000);
+    if (!isRefresh) {
+      setHeatmapStatus("100% Calculated");
+      setHeatmapFetched(true);
+      setTimeout(() => {
+        setHeatmapStatus("");
+      }, 2000);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [heatmapFetched]);
+  }, []);
 
   const updateLocation = useCallback(async (force = false) => {
     if (!force && coords && lastUpdated && (Date.now() - lastUpdated < 300000)) {
@@ -197,11 +209,19 @@ export const LocationProvider = ({ children }) => {
     }
   }, [coords, lastUpdated, updateHistorical]);
 
-  // Auto-fetch once on provider mount
+  // Auto-fetch once on provider mount + refresh every 5 minutes
   useEffect(() => {
     updateLocation();
     updateRankings();
     updateHeatmapPoints();
+
+    // Refresh heatmap + rankings every 5 minutes with fresh ML model values
+    const refreshInterval = setInterval(() => {
+      updateHeatmapPoints(true); // true = silent refresh (no "Syncing" message)
+      updateRankings();          // refresh rankings with latest model data
+    }, 5 * 60 * 1000);
+
+    return () => clearInterval(refreshInterval);
   }, []); // Only once on mount
 
   return (

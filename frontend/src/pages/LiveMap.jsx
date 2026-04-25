@@ -2,7 +2,8 @@ import { Box, Typography, Card, Chip, Button } from "@mui/material";
 import MapIcon from "@mui/icons-material/Map";
 import WhatshotIcon from "@mui/icons-material/Whatshot";
 import ThermostatIcon from "@mui/icons-material/Thermostat";
-import { useMemo, useRef, useState, useEffect } from "react";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import { useMemo, useRef, useState, useEffect, useCallback } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -13,6 +14,7 @@ import {
 import { fullWorldAndIndiaMask } from "../data/indiaMask";
 import "leaflet/dist/leaflet.css";
 import { useLocationData } from "../context/LocationContext";
+import TimelapseControl from "../components/TimelapseControl";
 
 const indiaBounds = [
   [6.4626999, 68.1097], // Southwest (near Kanyakumari/Gujarat)
@@ -175,10 +177,22 @@ function LiveMap() {
   const { heatmapPoints: locations, heatmapStatus: loadingMsg } = useLocationData();
   const [heatmapMode, setHeatmapMode] = useState("none"); // 'none', 'aqi', 'temp'
   const [hoverWeather, setHoverWeather] = useState(null);
+  const [timelapseActive, setTimelapseActive] = useState(false);
+  const [shiftedLocations, setShiftedLocations] = useState(null);
+  const [currentTimeLabel, setCurrentTimeLabel] = useState(null);
   const maskOuterRing = useMemo(() => worldMaskRing, []);
+
+  const handleTimeChange = useCallback((shifted, timeInfo) => {
+    setShiftedLocations(shifted);
+    setCurrentTimeLabel(timeInfo);
+  }, []);
+
+  // Use shifted data when timelapse is active, otherwise use real-time data
+  const activeLocations = timelapseActive && shiftedLocations ? shiftedLocations : locations;
   
   const heatmapPoints = useMemo(() => {
     if (heatmapMode === "none") return [];
+    const dataSource = activeLocations;
     const points = [];
     const latStep = 0.62;
     const lonStep = 0.62;
@@ -188,12 +202,12 @@ function LiveMap() {
           key: `${lat.toFixed(2)}-${lon.toFixed(2)}`,
           lat,
           lon,
-          val: estimateValue(lat, lon, locations, heatmapMode),
+          val: estimateValue(lat, lon, dataSource, heatmapMode),
         });
       }
     }
     return points.filter((pt) => isPointInPolygon(pt.lat, pt.lon, indiaPolygon));
-  }, [locations, heatmapMode]);
+  }, [activeLocations, heatmapMode]);
 
   return (
     <Box sx={{ maxWidth: 1400, mx: "auto", px: { xs: 2, md: 4 }, py: { xs: 2, md: 4 } }}>
@@ -268,7 +282,7 @@ function LiveMap() {
         <Box sx={{ position: "relative", height: "82vh", width: "100%" }}>
           {/* Floating Heatmap Toggles (Sticky) */}
           <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: "100%", pointerEvents: "none", zIndex: 1000 }}>
-            <Box sx={{ position: "sticky", top: 84, pt: 2.5, pl: { xs: 2, md: 10 }, display: "flex", gap: 2, justifyContent: "flex-start", pointerEvents: "auto" }}>
+            <Box sx={{ position: "sticky", top: 84, pt: 2.5, pl: { xs: 2, md: 3 }, display: "flex", flexDirection: "column", gap: 1.5, alignItems: "flex-start", pointerEvents: "auto", maxWidth: 220 }}>
               <Button
                 variant={heatmapMode === "aqi" ? "contained" : "outlined"}
                 startIcon={heatmapMode === "aqi" ? <WhatshotIcon /> : <ThermostatIcon />}
@@ -311,6 +325,38 @@ function LiveMap() {
                 }}
               >
                 {heatmapMode === "temp" ? "Temp Heatmap: ON" : "Temp Heatmap: OFF"}
+              </Button>
+
+              <Button
+                variant={timelapseActive ? "contained" : "outlined"}
+                startIcon={<AccessTimeIcon />}
+                onClick={() => {
+                  const newState = !timelapseActive;
+                  setTimelapseActive(newState);
+                  if (newState && heatmapMode === "none") {
+                    setHeatmapMode("aqi");
+                  }
+                  if (!newState) {
+                    setShiftedLocations(null);
+                    setCurrentTimeLabel(null);
+                  }
+                }}
+                sx={{
+                  borderRadius: 8,
+                  px: 3,
+                  py: 1,
+                  backgroundColor: timelapseActive ? "#4facfe" : "rgba(255,255,255,0.95)",
+                  color: timelapseActive ? "white" : "#4facfe",
+                  fontWeight: 800,
+                  backdropFilter: "blur(8px)",
+                  boxShadow: "0 6px 16px rgba(0,0,0,0.12)",
+                  border: "1px solid rgba(79,172,254,0.3)",
+                  "&:hover": {
+                    backgroundColor: timelapseActive ? "#3d8bfd" : "white",
+                  }
+                }}
+              >
+                {timelapseActive ? "Forecast: ON" : "24h Forecast"}
               </Button>
             </Box>
           </Box>
@@ -367,6 +413,44 @@ function LiveMap() {
               <CursorTemperatureTracker onHover={setHoverWeather} locations={locations} />
             )}
           </MapContainer>
+
+          {/* Timelapse time badge overlay */}
+          {timelapseActive && currentTimeLabel && (
+            <Box
+              sx={{
+                position: "absolute",
+                top: 80,
+                right: 20,
+                zIndex: 1100,
+                background: "rgba(15, 17, 23, 0.88)",
+                backdropFilter: "blur(16px)",
+                borderRadius: 3,
+                px: 2.5,
+                py: 1.5,
+                boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                textAlign: "center",
+              }}
+            >
+              <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)", fontWeight: 600, letterSpacing: 1, fontSize: "0.65rem" }}>
+                FORECAST
+              </Typography>
+              <Typography variant="h5" sx={{ color: "#4facfe", fontWeight: 800, lineHeight: 1.2 }}>
+                {currentTimeLabel.label}
+              </Typography>
+              <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.4)", fontSize: "0.65rem" }}>
+                {currentTimeLabel.isNow ? "Right Now" : currentTimeLabel.isTomorrow ? "Tomorrow" : "Today"}
+              </Typography>
+            </Box>
+          )}
+
+          {/* Timelapse Controls */}
+          {timelapseActive && (
+            <TimelapseControl
+              baseLocations={locations}
+              onTimeChange={handleTimeChange}
+            />
+          )}
         </Box>
       </Card>
 
