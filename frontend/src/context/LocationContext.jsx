@@ -13,6 +13,23 @@ export const LocationProvider = ({ children }) => {
   const [rankLastUpdated, setRankLastUpdated] = useState(null);
   const [histLastUpdated, setHistLastUpdated] = useState(null);
 
+  const [heatmapPoints, setHeatmapPoints] = useState([
+    { city: "Delhi", lat: 28.61, lon: 77.2, aqi: 210 },
+    { city: "Mumbai", lat: 19.07, lon: 72.87, aqi: 140 },
+    { city: "Chennai", lat: 13.08, lon: 80.27, aqi: 95 },
+    { city: "Kolkata", lat: 22.57, lon: 88.36, aqi: 180 },
+    { city: "Guwahati", lat: 26.14, lon: 91.74, aqi: 132 },
+    { city: "Shillong", lat: 25.58, lon: 91.89, aqi: 96 },
+    { city: "Itanagar", lat: 27.09, lon: 93.62, aqi: 84 },
+    { city: "Bangalore", lat: 12.97, lon: 77.59, aqi: 80 },
+    { city: "Hyderabad", lat: 17.38, lon: 78.48, aqi: 110 },
+    { city: "Jaipur", lat: 26.91, lon: 75.78, aqi: 150 },
+    { city: "Bhopal", lat: 23.25, lon: 77.41, aqi: 120 },
+    { city: "Lucknow", lat: 26.84, lon: 80.94, aqi: 190 },
+  ]);
+  const [heatmapStatus, setHeatmapStatus] = useState("");
+  const [heatmapFetched, setHeatmapFetched] = useState(false);
+
   const fetchAQI = async (lat, lon) => {
     try {
       const res = await fetch(`http://localhost:5000/aqi?lat=${lat}&lon=${lon}`);
@@ -79,6 +96,48 @@ export const LocationProvider = ({ children }) => {
     }
   }, [coords, historicalData, histLastUpdated]);
 
+  const updateHeatmapPoints = useCallback(async () => {
+    if (heatmapFetched) return;
+    
+    const currentPoints = [
+      { city: "Delhi", lat: 28.61, lon: 77.2 },
+      { city: "Mumbai", lat: 19.07, lon: 72.87 },
+      { city: "Chennai", lat: 13.08, lon: 80.27 },
+      { city: "Kolkata", lat: 22.57, lon: 88.36 },
+      { city: "Guwahati", lat: 26.14, lon: 91.74 },
+      { city: "Shillong", lat: 25.58, lon: 91.89 },
+      { city: "Itanagar", lat: 27.09, lon: 93.62 },
+      { city: "Bangalore", lat: 12.97, lon: 77.59 },
+      { city: "Hyderabad", lat: 17.38, lon: 78.48 },
+      { city: "Jaipur", lat: 26.91, lon: 75.78 },
+      { city: "Bhopal", lat: 23.25, lon: 77.41 },
+      { city: "Lucknow", lat: 26.84, lon: 80.94 },
+    ];
+
+    for (let i = 0; i < currentPoints.length; i++) {
+      setHeatmapStatus(`Heatmap Syncing: ${currentPoints[i].city}`);
+      try {
+        const data = await fetchAQI(currentPoints[i].lat, currentPoints[i].lon);
+        if (data && data.aqi !== undefined) {
+          setHeatmapPoints((prev) => {
+            const copy = [...prev];
+            copy[i] = { ...copy[i], aqi: data.aqi };
+            return copy;
+          });
+        }
+      } catch (e) {
+        console.error("Heatmap fetch error:", e);
+      }
+    }
+    
+    setHeatmapStatus("100% Calculated");
+    setHeatmapFetched(true);
+    setTimeout(() => {
+      setHeatmapStatus("");
+    }, 2000);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [heatmapFetched]);
+
   const updateLocation = useCallback(async (force = false) => {
     if (!force && coords && lastUpdated && (Date.now() - lastUpdated < 300000)) {
       return;
@@ -116,13 +175,15 @@ export const LocationProvider = ({ children }) => {
   useEffect(() => {
     updateLocation();
     updateRankings();
+    updateHeatmapPoints();
   }, []); // Only once on mount
 
   return (
     <LocationContext.Provider value={{ 
       coords, locationName, aqiData, loading, updateLocation,
       rankingData, updateRankings,
-      historicalData, updateHistorical
+      historicalData, updateHistorical,
+      heatmapPoints, heatmapStatus, updateHeatmapPoints
     }}>
       {children}
     </LocationContext.Provider>

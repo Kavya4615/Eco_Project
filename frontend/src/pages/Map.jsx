@@ -5,6 +5,7 @@ import { MapContainer, TileLayer, Circle, Polygon } from "react-leaflet";
 import { fullWorldAndIndiaMask } from "../data/indiaMask";
 import { motion } from "framer-motion";
 import DragHandleIcon from "@mui/icons-material/DragHandle";
+import WhatshotIcon from "@mui/icons-material/Whatshot";
 import "leaflet/dist/leaflet.css";
 
 const indiaBounds = [
@@ -73,7 +74,7 @@ function isPointInPolygon(lat, lon, polygon) {
 import { useLocationData } from "../context/LocationContext";
 
 function MapView() {
-  const { coords, locationName, aqiData, updateLocation } = useLocationData();
+  const { coords, locationName, aqiData, heatmapPoints: points, heatmapStatus: loadingMsg } = useLocationData();
   const [position, setPosition] = useState(coords || [20.5937, 78.9629]);
   const [showHeatmap, setShowHeatmap] = useState(false);
 
@@ -83,47 +84,6 @@ function MapView() {
     }
   }, [coords]);
 
-  // Heatmap interpolation nodes
-  const [points, setPoints] = useState([
-    { city: "Delhi", lat: 28.61, lon: 77.2, aqi: 210 },
-    { city: "Mumbai", lat: 19.07, lon: 72.87, aqi: 140 },
-    { city: "Kolkata", lat: 22.57, lon: 88.36, aqi: 180 },
-    { city: "Chennai", lat: 13.08, lon: 80.27, aqi: 95 },
-    { city: "Bengaluru", lat: 12.97, lon: 77.59, aqi: 88 },
-    { city: "Guwahati", lat: 26.14, lon: 91.74, aqi: 132 },
-  ]);
-
-  const [loadingMsg, setLoadingMsg] = useState("");
-
-  useEffect(() => {
-    let active = true;
-    const fetchAnchors = async () => {
-      for (let i = 0; i < points.length; i++) {
-        if (!active) break;
-        setLoadingMsg(`Heatmap Syncing: ${points[i].city}`);
-        try {
-          const res = await fetch(`http://localhost:5000/aqi?lat=${points[i].lat}&lon=${points[i].lon}`);
-          const data = await res.json();
-          if (data && data.aqi !== undefined) {
-             setPoints((prev) => {
-               const copy = [...prev];
-               copy[i] = { ...copy[i], aqi: data.aqi };
-               return copy;
-             });
-          }
-        } catch (e) {
-          console.error(e);
-        }
-      }
-      if (active) setLoadingMsg("100% Calculated");
-      setTimeout(() => {
-        if (active) setLoadingMsg("");
-      }, 2000);
-    };
-    fetchAnchors();
-    return () => { active = false; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const color = aqiData ? getAQIColor(aqiData.aqi) : "#2196f3";
   const heatmapPoints = useMemo(() => {
@@ -144,10 +104,37 @@ function MapView() {
 
   return (
     <Box sx={{ position: "relative", height: "calc(100vh - 64px)" }}>
+      {/* Floating Heatmap Toggle (Sticky) */}
+      <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: "100%", pointerEvents: "none", zIndex: 1000 }}>
+        <Box sx={{ position: "sticky", top: 20, pt: 2.5, pl: 10, display: "flex", justifyContent: "flex-start", pointerEvents: "auto" }}>
+          <Button
+            variant={showHeatmap ? "contained" : "outlined"}
+            startIcon={<WhatshotIcon />}
+            onClick={() => setShowHeatmap((prev) => !prev)}
+            sx={{
+              borderRadius: 8,
+              px: 3,
+              py: 1,
+              backgroundColor: showHeatmap ? "#f44336" : "rgba(255,255,255,0.95)",
+              color: showHeatmap ? "white" : "#f44336",
+              fontWeight: 800,
+              backdropFilter: "blur(8px)",
+              boxShadow: "0 6px 16px rgba(0,0,0,0.12)",
+              border: "1px solid rgba(244,67,54,0.3)",
+              "&:hover": {
+                backgroundColor: showHeatmap ? "#d32f2f" : "white",
+              }
+            }}
+          >
+            {showHeatmap ? "Heatmap: ON" : "Heatmap: OFF"}
+          </Button>
+        </Box>
+      </Box>
+
       <Box style={{ height: "100%", width: "100%" }}>
         <MapContainer
           bounds={indiaBounds}
-          boundsOptions={{ padding: [20, 20] }}
+          boundsOptions={{ paddingTopLeft: [0, 80], paddingBottomRight: [0, 20] }}
           minZoom={4}
           maxBounds={indiaBounds}
           maxBoundsViscosity={1.0}
@@ -247,20 +234,6 @@ function MapView() {
               </Typography>
             )}
 
-            {loadingMsg && (
-              <Typography variant="caption" sx={{ color: "#ff9800", display: "block", mb: 1, fontWeight: 'bold' }}>
-                ⚡ {loadingMsg}...
-              </Typography>
-            )}
-            <Button
-              variant={showHeatmap ? "contained" : "outlined"}
-              size="small"
-              fullWidth
-              onClick={() => setShowHeatmap((prev) => !prev)}
-              sx={{ mb: 1, textTransform: "none", fontWeight: 700 }}
-            >
-              {showHeatmap ? "Heatmap: ON" : "Heatmap: OFF"}
-            </Button>
             <Button
               component={Link}
               to="/near-me"

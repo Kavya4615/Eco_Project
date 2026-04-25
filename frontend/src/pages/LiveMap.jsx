@@ -12,6 +12,7 @@ import {
 } from "react-leaflet";
 import { fullWorldAndIndiaMask } from "../data/indiaMask";
 import "leaflet/dist/leaflet.css";
+import { useLocationData } from "../context/LocationContext";
 
 const indiaBounds = [
   [6.4626999, 68.1097], // Southwest (near Kanyakumari/Gujarat)
@@ -162,55 +163,9 @@ function CursorTemperatureTracker({ onHover, locations }) {
 }
 
 function LiveMap() {
+  const { heatmapPoints: locations, heatmapStatus: loadingMsg } = useLocationData();
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [hoverWeather, setHoverWeather] = useState(null);
-
-  const [locations, setLocations] = useState([
-    { city: "Delhi", lat: 28.61, lon: 77.2, aqi: 210 },
-    { city: "Mumbai", lat: 19.07, lon: 72.87, aqi: 140 },
-    { city: "Chennai", lat: 13.08, lon: 80.27, aqi: 95 },
-    { city: "Kolkata", lat: 22.57, lon: 88.36, aqi: 180 },
-    { city: "Guwahati", lat: 26.14, lon: 91.74, aqi: 132 },
-    { city: "Shillong", lat: 25.58, lon: 91.89, aqi: 96 },
-    { city: "Itanagar", lat: 27.09, lon: 93.62, aqi: 84 },
-    { city: "Bangalore", lat: 12.97, lon: 77.59, aqi: 80 },
-    { city: "Hyderabad", lat: 17.38, lon: 78.48, aqi: 110 },
-    { city: "Jaipur", lat: 26.91, lon: 75.78, aqi: 150 },
-    { city: "Bhopal", lat: 23.25, lon: 77.41, aqi: 120 },
-    { city: "Lucknow", lat: 26.84, lon: 80.94, aqi: 190 },
-  ]);
-
-  const [loadingMsg, setLoadingMsg] = useState("");
-
-  useEffect(() => {
-    let active = true;
-    const fetchAnchors = async () => {
-      for (let i = 0; i < locations.length; i++) {
-        if (!active) break;
-        setLoadingMsg(`Calculating real-time heatmap node ${i + 1}/${locations.length} (${locations[i].city})`);
-        try {
-          const res = await fetch(`http://localhost:5000/aqi?lat=${locations[i].lat}&lon=${locations[i].lon}`);
-          const data = await res.json();
-          if (data && data.aqi !== undefined) {
-             setLocations((prev) => {
-               const copy = [...prev];
-               copy[i] = { ...copy[i], aqi: data.aqi };
-               return copy;
-             });
-          }
-        } catch (e) {
-          console.error(e);
-        }
-      }
-      if (active) setLoadingMsg("100% Calculated");
-      setTimeout(() => {
-        if (active) setLoadingMsg("");
-      }, 2000);
-    };
-    fetchAnchors();
-    return () => { active = false; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
   const maskOuterRing = useMemo(() => worldMaskRing, []);
   const heatmapPoints = useMemo(() => {
     const points = [];
@@ -259,22 +214,6 @@ function LiveMap() {
           )}
         </Box>
 
-        <Button
-          variant={showHeatmap ? "contained" : "outlined"}
-          startIcon={showHeatmap ? <WhatshotIcon /> : <ThermostatIcon />}
-          onClick={() => setShowHeatmap((prev) => !prev)}
-          sx={{
-            borderRadius: 999,
-            px: 2.25,
-            fontWeight: 700,
-            textTransform: "none",
-            minWidth: 180,
-            alignSelf: { xs: "stretch", md: "auto" },
-          }}
-        >
-          {showHeatmap ? "Heatmap: ON" : "Heatmap: OFF"}
-        </Button>
-
         {/* Legend */}
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", justifyContent: "flex-end" }}>
           {[
@@ -309,10 +248,37 @@ function LiveMap() {
           border: "1px solid rgba(0,0,0,0.05)",
         }}
       >
-        <Box sx={{ height: "82vh", width: "100%" }}>
+        <Box sx={{ position: "relative", height: "82vh", width: "100%" }}>
+          {/* Floating Heatmap Toggle (Sticky) */}
+          <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: "100%", pointerEvents: "none", zIndex: 1000 }}>
+            <Box sx={{ position: "sticky", top: 84, pt: 2.5, pl: 10, display: "flex", justifyContent: "flex-start", pointerEvents: "auto" }}>
+              <Button
+                variant={showHeatmap ? "contained" : "outlined"}
+                startIcon={showHeatmap ? <WhatshotIcon /> : <ThermostatIcon />}
+                onClick={() => setShowHeatmap((prev) => !prev)}
+                sx={{
+                  borderRadius: 8,
+                  px: 3,
+                  py: 1,
+                  backgroundColor: showHeatmap ? "#f44336" : "rgba(255,255,255,0.95)",
+                  color: showHeatmap ? "white" : "#f44336",
+                  fontWeight: 800,
+                  backdropFilter: "blur(8px)",
+                  boxShadow: "0 6px 16px rgba(0,0,0,0.12)",
+                  border: "1px solid rgba(244,67,54,0.3)",
+                  "&:hover": {
+                    backgroundColor: showHeatmap ? "#d32f2f" : "white",
+                  }
+                }}
+              >
+                {showHeatmap ? "Heatmap: ON" : "Heatmap: OFF"}
+              </Button>
+            </Box>
+          </Box>
+
           <MapContainer
             bounds={indiaBounds}
-            boundsOptions={{ padding: [20, 20] }}
+            boundsOptions={{ paddingTopLeft: [0, 100], paddingBottomRight: [0, 20] }}
             minZoom={4}
             maxBounds={indiaBounds}
             maxBoundsViscosity={1.0}
