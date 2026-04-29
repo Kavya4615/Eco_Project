@@ -7,6 +7,12 @@ html, body, #root {
   height: 100%;
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
 }
 
 body {
@@ -15,6 +21,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background: #f8faf9;
   color: #1a1a2e;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ===== SCROLLBAR ===== */
@@ -58,4 +65,22 @@ a {
 .leaflet-container {
   border-radius: 16px;
   overflow: hidden;
+}
+
+/* ===== MOBILE RESPONSIVE ===== */
+@media (max-width: 600px) {
+  .leaflet-container {
+    border-radius: 8px;
+  }
+  
+  /* Prevent text overflow on small screens */
+  h1, h2, h3, h4, h5, h6 {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  /* Better touch targets on mobile */
+  button, [role="button"] {
+    min-height: 44px;
+  }
 }

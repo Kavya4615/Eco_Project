@@ -117,18 +117,19 @@ function MapView() {
   }, [points]);
 
   return (
-    <Box sx={{ position: "relative", height: "calc(100vh - 64px)" }}>
+    <Box sx={{ position: "relative", height: { xs: "calc(100vh - 56px)", md: "calc(100vh - 64px)" } }}>
       {/* Floating Heatmap Toggle (Sticky) */}
       <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: "100%", pointerEvents: "none", zIndex: 1000 }}>
-        <Box sx={{ position: "sticky", top: 20, pt: 2.5, pl: 10, display: "flex", justifyContent: "flex-start", pointerEvents: "auto" }}>
+        <Box sx={{ position: "sticky", top: 20, pt: { xs: 1.5, md: 2.5 }, pl: { xs: 2, md: 10 }, display: "flex", justifyContent: "flex-start", pointerEvents: "auto" }}>
           <Button
             variant={showHeatmap ? "contained" : "outlined"}
             startIcon={<WhatshotIcon />}
             onClick={() => setShowHeatmap((prev) => !prev)}
             sx={{
               borderRadius: 8,
-              px: 3,
-              py: 1,
+              px: { xs: 1.5, md: 3 },
+              py: { xs: 0.6, md: 1 },
+              fontSize: { xs: "0.7rem", md: "0.875rem" },
               backgroundColor: showHeatmap ? "#f44336" : "rgba(255,255,255,0.95)",
               color: showHeatmap ? "white" : "#f44336",
               fontWeight: 800,
@@ -204,12 +205,13 @@ function MapView() {
           right: 20,
           zIndex: 1000,
           cursor: "grab",
+          maxWidth: "calc(100vw - 40px)",
         }}
         whileDrag={{ cursor: "grabbing", scale: 1.05 }}
       >
         <Card
           sx={{
-            width: 260,
+            width: { xs: 200, sm: 240, md: 260 },
             borderRadius: 3,
             background: "rgba(255,255,255,0.92)",
             backdropFilter: "blur(12px)",
@@ -273,7 +275,7 @@ function MapView() {
       {aqiData && <HealthAdvisor aqi={aqiData.aqi} />}
 
       {/* Map Controls */}
-      <Box sx={{ position: "absolute", bottom: 40, right: 24, zIndex: 1000, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Box sx={{ position: "absolute", bottom: { xs: 16, md: 40 }, right: { xs: 12, md: 24 }, zIndex: 1000, display: 'flex', flexDirection: 'column', gap: { xs: 1.5, md: 2 } }}>
         <MuiTooltip title="Enable AQI Alerts" placement="left">
           <IconButton 
             onClick={notificationsEnabled ? () => setNotificationsEnabled(false) : requestNotificationPermission}

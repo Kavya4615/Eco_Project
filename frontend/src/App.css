@@ -54,3 +54,14 @@
 .table-row-alt:nth-child(even) {
   background-color: rgba(46, 125, 50, 0.03);
 }
+
+/* ===== MOBILE RESPONSIVE ===== */
+@media (max-width: 600px) {
+  .section-container {
+    padding: 0 16px;
+  }
+
+  .eco-card:hover {
+    transform: none;
+  }
+}

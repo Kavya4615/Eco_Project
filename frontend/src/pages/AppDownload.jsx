@@ -5,13 +5,13 @@ import AppleIcon from "@mui/icons-material/Apple";
 
 function AppDownload() {
   return (
-    <Box sx={{ maxWidth: 700, mx: "auto", px: 3, py: 5 }}>
+    <Box sx={{ maxWidth: 700, mx: "auto", px: { xs: 2, md: 3 }, py: { xs: 3, md: 5 } }}>
       {/* Header */}
-      <Box sx={{ textAlign: "center", mb: 5 }}>
+      <Box sx={{ textAlign: "center", mb: { xs: 3, md: 5 } }}>
         <Box
           sx={{
-            width: 80,
-            height: 80,
+            width: { xs: 60, md: 80 },
+            height: { xs: 60, md: 80 },
             mx: "auto",
             mb: 2,
             borderRadius: "50%",
@@ -22,13 +22,13 @@ function AppDownload() {
             boxShadow: "0 8px 30px rgba(46,125,50,0.3)",
           }}
         >
-          <PhoneAndroidIcon sx={{ color: "white", fontSize: 40 }} />
+          <PhoneAndroidIcon sx={{ color: "white", fontSize: { xs: 30, md: 40 } }} />
         </Box>
 
-        <Typography variant="h4" fontWeight={700} sx={{ mb: 1 }}>
+        <Typography variant="h4" fontWeight={700} sx={{ mb: 1, fontSize: { xs: "1.4rem", md: "2.125rem" } }}>
           Air Quality App
         </Typography>
-        <Typography color="text.secondary" sx={{ maxWidth: 450, mx: "auto" }}>
+        <Typography color="text.secondary" sx={{ maxWidth: 450, mx: "auto", fontSize: { xs: "0.85rem", md: "1rem" } }}>
           Download our mobile app to monitor air quality on the go and receive real-time alerts.
         </Typography>
       </Box>

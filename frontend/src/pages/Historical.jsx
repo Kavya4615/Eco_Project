@@ -64,17 +64,17 @@ function Historical() {
   ] : [];
 
   return (
-    <Box sx={{ maxWidth: 900, mx: "auto", px: 3, py: 5 }}>
+    <Box sx={{ maxWidth: 900, mx: "auto", px: { xs: 2, md: 3 }, py: { xs: 3, md: 5 } }}>
 
       {/* Header */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1 }}>
-        <TimelineIcon sx={{ fontSize: 36, color: "#f44336" }} />
-        <Typography variant="h4">
+        <TimelineIcon sx={{ fontSize: { xs: 28, md: 36 }, color: "#f44336" }} />
+        <Typography variant="h4" sx={{ fontSize: { xs: "1.3rem", sm: "1.6rem", md: "2.125rem" } }}>
           PM2.5 Forecast Data
         </Typography>
       </Box>
 
-      <Typography color="text.secondary" sx={{ mb: 4, ml: 0.5 }}>
+      <Typography color="text.secondary" sx={{ mb: { xs: 2, md: 4 }, ml: 0.5, fontSize: { xs: "0.85rem", md: "1rem" } }}>
         Model-predicted PM2.5 values for your location
         {loading && <Box component="span" sx={{ color: "#f44336", fontWeight: "bold", ml: 1 }}>⚡ Syncing your location...</Box>}
       </Typography>
@@ -83,24 +83,24 @@ function Historical() {
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
             <Card sx={{ borderRadius: 4, boxShadow: "0 4px 24px rgba(0,0,0,0.06)", height: "100%" }}>
-               <CardContent sx={{ p: 4, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%" }}>
-                  <Typography variant="h6" color="text.secondary" gutterBottom>Today's average PM2.5</Typography>
-                  <Typography variant="h2" sx={{ fontWeight: 800, color: "#f44336" }}>{aqiData.pm25} <Typography component="span" variant="h6">µg/m³</Typography></Typography>
+               <CardContent sx={{ p: { xs: 2, md: 4 }, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%" }}>
+                  <Typography variant="h6" color="text.secondary" gutterBottom sx={{ fontSize: { xs: "0.9rem", md: "1.25rem" } }}>Today's average PM2.5</Typography>
+                  <Typography variant="h2" sx={{ fontWeight: 800, color: "#f44336", fontSize: { xs: "2rem", sm: "2.5rem", md: "3.75rem" } }}>{aqiData.pm25} <Typography component="span" variant="h6" sx={{ fontSize: { xs: "0.85rem", md: "1.25rem" } }}>µg/m³</Typography></Typography>
                </CardContent>
             </Card>
           </Grid>
           <Grid item xs={12} md={6}>
             <Card sx={{ borderRadius: 4, boxShadow: "0 4px 24px rgba(0,0,0,0.06)", height: "100%" }}>
-               <CardContent sx={{ p: 4, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%" }}>
-                  <Typography variant="h6" color="text.secondary" gutterBottom>Tomorrow's predicted PM2.5</Typography>
-                  <Typography variant="h2" sx={{ fontWeight: 800, color: "#ff9800" }}>{aqiData.pm25_tomorrow !== undefined ? aqiData.pm25_tomorrow : "N/A"} <Typography component="span" variant="h6">µg/m³</Typography></Typography>
+               <CardContent sx={{ p: { xs: 2, md: 4 }, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%" }}>
+                  <Typography variant="h6" color="text.secondary" gutterBottom sx={{ fontSize: { xs: "0.9rem", md: "1.25rem" } }}>Tomorrow's predicted PM2.5</Typography>
+                  <Typography variant="h2" sx={{ fontWeight: 800, color: "#ff9800", fontSize: { xs: "2rem", sm: "2.5rem", md: "3.75rem" } }}>{aqiData.pm25_tomorrow !== undefined ? aqiData.pm25_tomorrow : "N/A"} <Typography component="span" variant="h6" sx={{ fontSize: { xs: "0.85rem", md: "1.25rem" } }}>µg/m³</Typography></Typography>
                </CardContent>
             </Card>
           </Grid>
           <Grid item xs={12}>
             <Card sx={{ borderRadius: 4, boxShadow: "0 4px 24px rgba(0,0,0,0.06)", mt: 2 }}>
               <CardContent sx={{ p: { xs: 2, md: 4 } }}>
-                <ResponsiveContainer width="100%" height={300}>
+                <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.06)" />
                     <XAxis dataKey="name" tick={{ fontSize: 14, fontWeight: "bold", fill: "#888" }} axisLine={{ stroke: "rgba(0,0,0,0.1)" }} />

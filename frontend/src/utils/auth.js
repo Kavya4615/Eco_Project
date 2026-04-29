@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:5000';
+import API_BASE from './api';
 
 // ─── Register new user via Flask + SQLite ─────────────────────────────────────
 export const registerUser = async (user) => {

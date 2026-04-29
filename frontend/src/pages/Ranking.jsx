@@ -47,16 +47,16 @@ function Ranking() {
   });
 
   return (
-    <Box sx={{ maxWidth: 900, mx: "auto", px: 3, py: 5 }}>
+    <Box sx={{ maxWidth: 900, mx: "auto", px: { xs: 2, md: 3 }, py: { xs: 3, md: 5 } }}>
       {/* Header */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1 }}>
-        <EmojiEventsIcon sx={{ fontSize: 36, color: "#f7971e" }} />
-        <Typography variant="h4">
+        <EmojiEventsIcon sx={{ fontSize: { xs: 28, md: 36 }, color: "#f7971e" }} />
+        <Typography variant="h4" sx={{ fontSize: { xs: "1.3rem", sm: "1.6rem", md: "2.125rem" } }}>
           Live Air Quality Ranking
         </Typography>
       </Box>
 
-      <Typography color="text.secondary" sx={{ mb: 4, ml: 0.5 }}>
+      <Typography color="text.secondary" sx={{ mb: { xs: 2, md: 4 }, ml: 0.5, fontSize: { xs: "0.85rem", md: "1rem" } }}>
         Cities ranked by live Air Quality Index (AQI) from the ML model
         {loading && <Box component="span" sx={{ color: "#f7971e", fontWeight: "bold", ml: 1 }}>⚡ Syncing Data...</Box>}
       </Typography>
@@ -66,26 +66,27 @@ function Ranking() {
         sx={{
           borderRadius: 3,
           boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
-          overflow: "hidden",
+          overflow: "auto",
+          WebkitOverflowScrolling: "touch",
         }}
       >
-        <Table>
+        <Table sx={{ minWidth: { xs: 400, md: "auto" } }}>
           <TableHead>
             <TableRow
               sx={{
                 background: "linear-gradient(135deg, #1a1a2e, #16213e)",
               }}
             >
-              <TableCell sx={{ color: "white", fontWeight: 700, fontSize: "0.9rem" }}>
+              <TableCell sx={{ color: "white", fontWeight: 700, fontSize: { xs: "0.75rem", md: "0.9rem" }, px: { xs: 1, md: 2 } }}>
                 Rank
               </TableCell>
-              <TableCell sx={{ color: "white", fontWeight: 700, fontSize: "0.9rem" }}>
+              <TableCell sx={{ color: "white", fontWeight: 700, fontSize: { xs: "0.75rem", md: "0.9rem" }, px: { xs: 1, md: 2 } }}>
                 City
               </TableCell>
-              <TableCell sx={{ color: "white", fontWeight: 700, fontSize: "0.9rem" }}>
+              <TableCell sx={{ color: "white", fontWeight: 700, fontSize: { xs: "0.75rem", md: "0.9rem" }, px: { xs: 1, md: 2 } }}>
                 AQI
               </TableCell>
-              <TableCell sx={{ color: "white", fontWeight: 700, fontSize: "0.9rem" }}>
+              <TableCell sx={{ color: "white", fontWeight: 700, fontSize: { xs: "0.75rem", md: "0.9rem" }, px: { xs: 1, md: 2 } }}>
                 Status
               </TableCell>
             </TableRow>

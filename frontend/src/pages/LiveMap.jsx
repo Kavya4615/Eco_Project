@@ -12,6 +12,7 @@ import {
   useMapEvents,
 } from "react-leaflet";
 import { fullWorldAndIndiaMask } from "../data/indiaMask";
+import API_BASE from "../utils/api";
 import "leaflet/dist/leaflet.css";
 import { useLocationData } from "../context/LocationContext";
 import TimelapseControl from "../components/TimelapseControl";
@@ -125,7 +126,7 @@ function CursorTemperatureTracker({ onHover, locations }) {
           fetch(
             `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m`
           ),
-          fetch(`http://localhost:5000/aqi?lat=${lat}&lon=${lng}`),
+          fetch(`${API_BASE}/aqi?lat=${lat}&lon=${lng}`),
         ]);
 
         let tempValue;
@@ -224,8 +225,8 @@ function LiveMap() {
       >
         <Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 0.5 }}>
-            <MapIcon sx={{ fontSize: 32, color: "#4facfe" }} />
-            <Typography variant="h4" sx={{ fontWeight: 700 }}>
+            <MapIcon sx={{ fontSize: { xs: 24, md: 32 }, color: "#4facfe" }} />
+            <Typography variant="h4" sx={{ fontWeight: 700, fontSize: { xs: "1.2rem", sm: "1.5rem", md: "2.125rem" } }}>
               Live Air Quality Map
             </Typography>
           </Box>
@@ -279,18 +280,19 @@ function LiveMap() {
           border: "1px solid rgba(0,0,0,0.05)",
         }}
       >
-        <Box sx={{ position: "relative", height: "82vh", width: "100%" }}>
+        <Box sx={{ position: "relative", height: { xs: "60vh", sm: "70vh", md: "82vh" }, width: "100%" }}>
           {/* Floating Heatmap Toggles (Sticky) */}
           <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: "100%", pointerEvents: "none", zIndex: 1000 }}>
-            <Box sx={{ position: "sticky", top: 84, pt: 2.5, pl: { xs: 2, md: 3 }, display: "flex", flexDirection: "column", gap: 1.5, alignItems: "flex-start", pointerEvents: "auto", maxWidth: 220 }}>
+            <Box sx={{ position: "sticky", top: 84, pt: { xs: 1.5, md: 2.5 }, pl: { xs: 1.5, md: 3 }, display: "flex", flexDirection: "column", gap: { xs: 0.8, md: 1.5 }, alignItems: "flex-start", pointerEvents: "auto", maxWidth: { xs: 180, md: 220 } }}>
               <Button
                 variant={heatmapMode === "aqi" ? "contained" : "outlined"}
                 startIcon={heatmapMode === "aqi" ? <WhatshotIcon /> : <ThermostatIcon />}
                 onClick={() => setHeatmapMode((prev) => prev === "aqi" ? "none" : "aqi")}
                 sx={{
                   borderRadius: 8,
-                  px: 3,
-                  py: 1,
+                  px: { xs: 1.5, md: 3 },
+                  py: { xs: 0.6, md: 1 },
+                  fontSize: { xs: "0.7rem", md: "0.875rem" },
                   backgroundColor: heatmapMode === "aqi" ? "#f44336" : "rgba(255,255,255,0.95)",
                   color: heatmapMode === "aqi" ? "white" : "#f44336",
                   fontWeight: 800,
@@ -311,8 +313,9 @@ function LiveMap() {
                 onClick={() => setHeatmapMode((prev) => prev === "temp" ? "none" : "temp")}
                 sx={{
                   borderRadius: 8,
-                  px: 3,
-                  py: 1,
+                  px: { xs: 1.5, md: 3 },
+                  py: { xs: 0.6, md: 1 },
+                  fontSize: { xs: "0.7rem", md: "0.875rem" },
                   backgroundColor: heatmapMode === "temp" ? "#ff9800" : "rgba(255,255,255,0.95)",
                   color: heatmapMode === "temp" ? "white" : "#ff9800",
                   fontWeight: 800,
@@ -343,8 +346,9 @@ function LiveMap() {
                 }}
                 sx={{
                   borderRadius: 8,
-                  px: 3,
-                  py: 1,
+                  px: { xs: 1.5, md: 3 },
+                  py: { xs: 0.6, md: 1 },
+                  fontSize: { xs: "0.7rem", md: "0.875rem" },
                   backgroundColor: timelapseActive ? "#4facfe" : "rgba(255,255,255,0.95)",
                   color: timelapseActive ? "white" : "#4facfe",
                   fontWeight: 800,
@@ -458,14 +462,15 @@ function LiveMap() {
         <Card
           sx={{
             position: "fixed",
-            bottom: 20,
-            left: 20,
+            bottom: { xs: 10, md: 20 },
+            left: { xs: 10, md: 20 },
             zIndex: 1100,
-            px: 1.5,
+            px: { xs: 1, md: 1.5 },
             py: 1,
             borderRadius: 2,
             boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-            maxWidth: 330,
+            maxWidth: { xs: 260, sm: 300, md: 330 },
+            fontSize: { xs: "0.75rem", md: "0.875rem" },
           }}
         >
           <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, letterSpacing: 0.6 }}>

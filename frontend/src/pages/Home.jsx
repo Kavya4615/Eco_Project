@@ -68,13 +68,13 @@ function Home() {
       {/* ═══ HERO SECTION ═══ */}
       <Box
         sx={{
-          minHeight: "92vh",
+          minHeight: { xs: "80vh", md: "92vh" },
           width: "100%",
           backgroundImage:
             "url('https://images.unsplash.com/photo-1506744038136-46273834b3fb')",
           backgroundSize: "cover",
           backgroundPosition: "center",
-          backgroundAttachment: "fixed",
+          backgroundAttachment: { xs: "scroll", md: "fixed" },
           position: "relative",
           display: "flex",
           justifyContent: "center",
@@ -98,7 +98,8 @@ function Home() {
             zIndex: 2,
             textAlign: "center",
             maxWidth: 720,
-            px: 3,
+            px: { xs: 2, md: 3 },
+            width: "100%",
           }}
         >
           <Typography
@@ -230,10 +231,10 @@ function Home() {
         <Card
           sx={{
             position: "absolute",
-            bottom: { xs: 20, md: 60 },
-            left: { xs: 20, md: 60 },
-            width: { xs: 200, md: 280 },
-            borderRadius: 4,
+            bottom: { xs: 12, md: 60 },
+            left: { xs: 12, md: 60 },
+            width: { xs: 160, sm: 200, md: 280 },
+            borderRadius: { xs: 3, md: 4 },
             background: "rgba(255,255,255,0.12)",
             backdropFilter: "blur(20px)",
             WebkitBackdropFilter: "blur(20px)",
@@ -243,14 +244,14 @@ function Home() {
             zIndex: 3,
             color: "white",
             "&:hover": {
-              transform: "translateY(-6px)",
+              transform: { xs: "none", md: "translateY(-6px)" },
             },
           }}
         >
-          <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+          <CardContent sx={{ p: { xs: 1.5, sm: 2, md: 3 } }}>
             <Typography
               variant="subtitle2"
-              sx={{ opacity: 0.7, fontWeight: 500, letterSpacing: 1 }}
+              sx={{ opacity: 0.7, fontWeight: 500, letterSpacing: 1, fontSize: { xs: "0.65rem", md: "0.875rem" } }}
             >
               {homeLocName}
             </Typography>
@@ -263,7 +264,7 @@ function Home() {
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 my: 0.5,
-                fontSize: { xs: "2.2rem", md: "3rem" },
+                fontSize: { xs: "1.6rem", sm: "2.2rem", md: "3rem" },
               }}
             >
               {homeAQI ? homeAQI.aqi : "--"}
@@ -381,18 +382,18 @@ function Home() {
       {/* ═══ MAP PREVIEW SECTION ═══ */}
       <Box
         sx={{
-          py: 10,
-          px: 3,
+          py: { xs: 5, md: 10 },
+          px: { xs: 2, md: 3 },
           backgroundColor: isDark ? "#0f1117" : "#fff",
         }}
       >
         <Box sx={{ maxWidth: 1100, mx: "auto" }}>
-          <Grid container spacing={6} alignItems="center">
+          <Grid container spacing={{ xs: 3, md: 6 }} alignItems="center">
             <Grid item xs={12} md={6}>
               <Typography variant="overline" sx={{ color: "#2e7d32", fontWeight: 700, letterSpacing: 3 }}>
                 LIVE PREVIEW
               </Typography>
-              <Typography variant="h3" sx={{ fontWeight: 800, mt: 1, mb: 3 }}>
+              <Typography variant="h3" sx={{ fontWeight: 800, mt: 1, mb: 3, fontSize: { xs: "1.6rem", sm: "2rem", md: "3rem" } }}>
                 Visualize Air Quality <br />
                 <Box component="span" sx={{ color: "#2e7d32" }}>On the Map</Box>
               </Typography>
@@ -420,10 +421,10 @@ function Home() {
             <Grid item xs={12} md={6}>
               <Card
                 sx={{
-                  borderRadius: 6,
+                  borderRadius: { xs: 3, md: 6 },
                   overflow: "hidden",
                   boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
-                  height: 400,
+                  height: { xs: 250, sm: 300, md: 400 },
                   position: "relative",
                 }}
               >

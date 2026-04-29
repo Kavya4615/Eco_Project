@@ -10,8 +10,8 @@ function Footer() {
       sx={{
         background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)",
         color: "rgba(255,255,255,0.7)",
-        py: 4,
-        px: 3,
+        py: { xs: 3, md: 4 },
+        px: { xs: 2, md: 3 },
         mt: "auto",
       }}
     >
@@ -20,10 +20,12 @@ function Footer() {
           maxWidth: 1200,
           mx: "auto",
           display: "flex",
+          flexDirection: { xs: "column", md: "row" },
           flexWrap: "wrap",
           justifyContent: "space-between",
-          alignItems: "center",
-          gap: 3,
+          alignItems: { xs: "center", md: "center" },
+          gap: { xs: 2, md: 3 },
+          textAlign: { xs: "center", md: "left" },
         }}
       >
         {/* Brand */}
@@ -44,17 +46,17 @@ function Footer() {
         </Box>
 
         {/* Links */}
-        <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
-          <MuiLink component={RouterLink} to="/" sx={{ color: "rgba(255,255,255,0.7)", "&:hover": { color: "#43e97b" }, transition: "0.2s" }}>
+        <Box sx={{ display: "flex", gap: { xs: 2, md: 3 }, flexWrap: "wrap", justifyContent: "center" }}>
+          <MuiLink component={RouterLink} to="/" sx={{ color: "rgba(255,255,255,0.7)", "&:hover": { color: "#43e97b" }, transition: "0.2s", fontSize: { xs: "0.85rem", md: "1rem" } }}>
             Home
           </MuiLink>
-          <MuiLink component={RouterLink} to="/near-me" sx={{ color: "rgba(255,255,255,0.7)", "&:hover": { color: "#43e97b" }, transition: "0.2s" }}>
+          <MuiLink component={RouterLink} to="/near-me" sx={{ color: "rgba(255,255,255,0.7)", "&:hover": { color: "#43e97b" }, transition: "0.2s", fontSize: { xs: "0.85rem", md: "1rem" } }}>
             Near Me
           </MuiLink>
-          <MuiLink component={RouterLink} to="/ranking" sx={{ color: "rgba(255,255,255,0.7)", "&:hover": { color: "#43e97b" }, transition: "0.2s" }}>
+          <MuiLink component={RouterLink} to="/ranking" sx={{ color: "rgba(255,255,255,0.7)", "&:hover": { color: "#43e97b" }, transition: "0.2s", fontSize: { xs: "0.85rem", md: "1rem" } }}>
             Rankings
           </MuiLink>
-          <MuiLink component={RouterLink} to="/live-map" sx={{ color: "rgba(255,255,255,0.7)", "&:hover": { color: "#43e97b" }, transition: "0.2s" }}>
+          <MuiLink component={RouterLink} to="/live-map" sx={{ color: "rgba(255,255,255,0.7)", "&:hover": { color: "#43e97b" }, transition: "0.2s", fontSize: { xs: "0.85rem", md: "1rem" } }}>
             Live Map
           </MuiLink>
         </Box>

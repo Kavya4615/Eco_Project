@@ -9,6 +9,7 @@ import PublicIcon from "@mui/icons-material/Public";
 import LogoutIcon from "@mui/icons-material/Logout";
 import PhotoCamera from "@mui/icons-material/PhotoCamera";
 import MedicalServicesIcon from "@mui/icons-material/MedicalServices";
+import API_BASE from "../utils/api";
 
 function Profile() {
   const [user, setUser] = useState(getCurrentUser());
@@ -29,7 +30,7 @@ function Profile() {
       const base64String = reader.result;
       setUploading(true);
       try {
-        const res = await fetch("http://localhost:5000/auth/upload-profile-pic", {
+        const res = await fetch(`${API_BASE}/auth/upload-profile-pic`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: user.email, profilePic: base64String }),
@@ -78,7 +79,7 @@ function Profile() {
   );
 
   return (
-    <Box sx={{ maxWidth: 600, mx: "auto", px: 3, py: 5 }}>
+    <Box sx={{ maxWidth: 600, mx: "auto", px: { xs: 2, md: 3 }, py: { xs: 3, md: 5 } }}>
       <Card
         sx={{
           borderRadius: 4,

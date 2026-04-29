@@ -39,6 +39,7 @@ import { fullWorldAndIndiaMask } from "../data/indiaMask";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import HealthAdvisor from "../components/HealthAdvisor";
+import API_BASE from "../utils/api";
 
 // Fix for default marker icons in Leaflet
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -299,7 +300,7 @@ function NearMe() {
 
         const aqiResults = await Promise.all(samplePoints.map(async ([lat, lon]) => {
           try {
-            const aqiRes = await fetch(`http://localhost:5000/aqi?lat=${lat}&lon=${lon}`);
+            const aqiRes = await fetch(`${API_BASE}/aqi?lat=${lat}&lon=${lon}`);
             const data = await aqiRes.json();
             return data.aqi || 0;
           } catch (e) {
@@ -350,7 +351,7 @@ function NearMe() {
       setLoading(true);
       const user = getCurrentUser();
       const healthParam = user?.health_condition ? `&healthCondition=${user.health_condition}` : '';
-      const res = await fetch(`http://localhost:5000/aqi?lat=${lat}&lon=${lon}${healthParam}`);
+      const res = await fetch(`${API_BASE}/aqi?lat=${lat}&lon=${lon}${healthParam}`);
       const data = await res.json();
       setAqiData(data);
       
@@ -358,7 +359,7 @@ function NearMe() {
         triggerNotification(data.aqi, data.category);
       }
       // Fetch 30-day history in background
-      fetch(`http://localhost:5000/aqi/history?lat=${lat}&lon=${lon}`)
+      fetch(`${API_BASE}/aqi/history?lat=${lat}&lon=${lon}`)
         .then(r => r.json())
         .then(h => { if (h.history) setHistoryData(h.history); })
         .catch(e => console.error('History fetch error:', e));
@@ -475,18 +476,19 @@ function NearMe() {
   const color = aqiData ? getAQIColor(aqiData.aqi) : "#2196f3";
 
   return (
-    <Box sx={{ position: "relative", height: "calc(100vh - 64px)", width: "100%" }}>
+    <Box sx={{ position: "relative", height: { xs: "calc(100vh - 56px)", md: "calc(100vh - 64px)" }, width: "100%" }}>
       {/* Floating Heatmap Toggle (Sticky) */}
       <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: "100%", pointerEvents: "none", zIndex: 1000 }}>
-        <Box sx={{ position: "sticky", top: 110, pt: 1, pl: 10, display: "flex", justifyContent: "flex-start", pointerEvents: "auto" }}>
+        <Box sx={{ position: "sticky", top: 110, pt: 1, pl: { xs: 2, md: 10 }, display: "flex", justifyContent: "flex-start", pointerEvents: "auto" }}>
           <Button
             variant={showHeatmap ? "contained" : "outlined"}
             startIcon={<WhatshotIcon />}
             onClick={() => setShowHeatmap((prev) => !prev)}
             sx={{
               borderRadius: 8,
-              px: 3,
-              py: 1,
+              px: { xs: 1.5, md: 3 },
+              py: { xs: 0.6, md: 1 },
+              fontSize: { xs: "0.7rem", md: "0.875rem" },
               backgroundColor: showHeatmap ? "#f44336" : "rgba(255,255,255,0.95)",
               color: showHeatmap ? "white" : "#f44336",
               fontWeight: 800,
@@ -604,11 +606,11 @@ function NearMe() {
           dragElastic={0.1}
           style={{
             position: "absolute",
-            top: 24,
+            top: 12,
             left: "50%",
             zIndex: 1000,
             x: "-50%",
-            width: "90%",
+            width: "92%",
             maxWidth: "500px",
             cursor: "grab",
           }}
@@ -617,12 +619,12 @@ function NearMe() {
           <Paper
             elevation={6}
             sx={{
-              p: 2,
-              pt: 1,
-              borderRadius: 4,
+              p: { xs: 1.2, md: 2 },
+              pt: { xs: 0.5, md: 1 },
+              borderRadius: { xs: 3, md: 4 },
               position: "relative",
               width: "100%",
-              maxHeight: "85vh",
+              maxHeight: { xs: "55vh", md: "85vh" },
               overflowY: "auto",
               background: isDark ? "rgba(26, 29, 40, 0.95)" : "rgba(255,255,255,0.95)",
               backdropFilter: "blur(12px)",
@@ -679,22 +681,22 @@ function NearMe() {
 
             {aqiData && !loading && (
               <Fade in={true}>
-                <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 1.5 }}>
-                  <Card sx={{ borderRadius: 3, overflow: "hidden", width: "100%" }}>
-                    <Box sx={{ p: 2, bgcolor: color, color: "white", display: "flex", flexDirection: "column", gap: 0.5 }}>
+                <Box sx={{ mt: { xs: 1, md: 2 }, display: "flex", flexDirection: "column", gap: { xs: 0.8, md: 1.5 } }}>
+                  <Card sx={{ borderRadius: { xs: 2, md: 3 }, overflow: "hidden", width: "100%" }}>
+                    <Box sx={{ p: { xs: 1.2, md: 2 }, bgcolor: color, color: "white", display: "flex", flexDirection: "column", gap: 0.3 }}>
                       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                        <Typography variant="h5" sx={{ fontWeight: 700, fontSize: { xs: "0.8rem", sm: "1rem", md: "1.5rem" } }}>
                           Today's average AQI: {aqiData.aqi} {aqiData.category ? `(${aqiData.category})` : ""}
                         </Typography>
                       </Box>
                       {aqiData.pm25 !== undefined && (
-                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        <Typography variant="body1" sx={{ fontWeight: 500, fontSize: { xs: "0.72rem", md: "1rem" } }}>
                           PM2.5: {aqiData.pm25} µg/m³
                         </Typography>
                       )}
                       {aqiData.aqi_tomorrow !== undefined && (
-                        <Box sx={{ mt: 1, pt: 1, borderTop: "1px solid rgba(255,255,255,0.3)" }}>
-                          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                        <Box sx={{ mt: { xs: 0.5, md: 1 }, pt: { xs: 0.5, md: 1 }, borderTop: "1px solid rgba(255,255,255,0.3)" }}>
+                          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: { xs: "0.75rem", md: "1.25rem" } }}>
                             Tomorrow's predicted AQI: {aqiData.aqi_tomorrow} {aqiData.category_tomorrow ? `(${aqiData.category_tomorrow})` : ""}
                           </Typography>
                         </Box>
@@ -703,7 +705,7 @@ function NearMe() {
                   </Card>
                   
                   {aqiData.health_recommendation && (
-                    <Alert severity={aqiData.aqi > 150 ? "error" : aqiData.aqi > 100 ? "warning" : "success"} sx={{ borderRadius: 2 }}>
+                    <Alert severity={aqiData.aqi > 150 ? "error" : aqiData.aqi > 100 ? "warning" : "success"} sx={{ borderRadius: 2, py: { xs: 0, md: 1 }, fontSize: { xs: "0.75rem", md: "0.875rem" } }}>
                       <strong>Health Advice:</strong> {aqiData.health_recommendation}
                     </Alert>
                   )}
@@ -856,7 +858,7 @@ function NearMe() {
       {aqiData && <HealthAdvisor aqi={aqiData.aqi} />}
 
       {/* Map Controls */}
-      <Box sx={{ position: "absolute", bottom: 40, right: 24, zIndex: 1000, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Box sx={{ position: "absolute", bottom: { xs: 16, md: 40 }, right: { xs: 12, md: 24 }, zIndex: 1000, display: 'flex', flexDirection: 'column', gap: { xs: 1.5, md: 2 } }}>
         <MuiTooltip title="Enable AQI Alerts" placement="left">
           <IconButton 
             onClick={notificationsEnabled ? () => setNotificationsEnabled(false) : requestNotificationPermission}

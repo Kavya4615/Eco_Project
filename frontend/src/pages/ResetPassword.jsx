@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Box, Typography, TextField, Button, Paper, CircularProgress, Alert } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import API_BASE from "../utils/api";
 
 function ResetPassword() {
   const [email, setEmail] = useState("");
@@ -28,7 +29,7 @@ function ResetPassword() {
 
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/auth/reset-password", {
+      const res = await fetch(`${API_BASE}/auth/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, newPassword }),

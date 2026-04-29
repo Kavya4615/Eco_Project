@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import API_BASE from "../utils/api";
 
 const LocationContext = createContext();
 
@@ -54,7 +55,7 @@ export const LocationProvider = ({ children }) => {
 
   const fetchAQI = async (lat, lon) => {
     try {
-      const res = await fetch(`http://localhost:5000/aqi?lat=${lat}&lon=${lon}`);
+      const res = await fetch(`${API_BASE}/aqi?lat=${lat}&lon=${lon}`);
       const data = await res.json();
       return data;
     } catch (err) {
