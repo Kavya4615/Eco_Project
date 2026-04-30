@@ -20,6 +20,7 @@ import {
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import DirectionsIcon from "@mui/icons-material/Directions";
 import NavigationIcon from "@mui/icons-material/Navigation";
+import TravelExploreIcon from "@mui/icons-material/TravelExplore";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid, ResponsiveContainer, AreaChart, Area
 } from "recharts";
@@ -83,12 +84,16 @@ function FitRouteBounds({ routePath }) {
   return null;
 }
 
-function MapClickPinpoint({ setPosition, fetchAQI, setLocation, routeMode, setRoutePoints, setStartInput, setEndInput, disabled, setRoutePath, setRouteAQI }) {
+function MapClickPinpoint({ setPosition, fetchAQI, setLocation, routeMode, setRoutePoints, setStartInput, setEndInput, disabled, setRoutePath, setRouteAQI, cleanSpotMode, setCleanCenter, setCleanResult }) {
   useMapEvents({
     click(e) {
       if (disabled) return;
       const { lat, lng } = e.latlng;
-      if (routeMode) {
+      if (cleanSpotMode) {
+        setCleanCenter([lat, lng]);
+        setCleanResult(null);
+        if (setStartInput) setStartInput(`Lat: ${lat.toFixed(4)}, Lon: ${lng.toFixed(4)}`);
+      } else if (routeMode) {
         setRoutePoints(prev => {
           if (!prev.start) {
             if (setStartInput) setStartInput(`Lat: ${lat.toFixed(4)}, Lon: ${lng.toFixed(4)}`);
@@ -191,6 +196,13 @@ function NearMe() {
   const [routePoints, setRoutePoints] = useState({ start: null, end: null });
   const [routeAQI, setRouteAQI] = useState(null);
   const [routePath, setRoutePath] = useState([]);
+  
+  const [cleanSpotMode, setCleanSpotMode] = useState(false);
+  const [cleanRadius, setCleanRadius] = useState(5);
+  const [cleanResult, setCleanResult] = useState(null);
+  const [cleanLoading, setCleanLoading] = useState(false);
+  const [cleanCenter, setCleanCenter] = useState(null);
+
   const [viewTicket, setViewTicket] = useState(0);
   const [geoError, setGeoError] = useState(null);
   const muiTheme = useMuiTheme();
@@ -345,6 +357,27 @@ function NearMe() {
       calculateRouteAQI();
     }
   }, [routePoints]);
+
+  const fetchCleanest = async (lat, lon, radius) => {
+    setCleanLoading(true);
+    setCleanResult(null);
+    try {
+      const res = await fetch(`${API_BASE}/aqi/cleanest?lat=${lat}&lon=${lon}&radius=${radius}`);
+      const data = await res.json();
+      if (data.cleanest_location) {
+        setCleanResult(data.cleanest_location);
+        setPosition([data.cleanest_location.lat, data.cleanest_location.lon]);
+        setViewTicket(prev => prev + 1);
+      } else {
+        setError("No cleanest location found");
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Failed to fetch cleanest spot");
+    } finally {
+      setCleanLoading(false);
+    }
+  };
 
   const fetchAQI = async (lat, lon) => {
     try {
@@ -537,6 +570,9 @@ function NearMe() {
             disabled={false}
             setRoutePath={setRoutePath}
             setRouteAQI={setRouteAQI}
+            cleanSpotMode={cleanSpotMode}
+            setCleanCenter={setCleanCenter}
+            setCleanResult={setCleanResult}
           />
           {showHeatmap && interpolatedHeatmapPoints
             ? interpolatedHeatmapPoints.flatMap((pt) => ([
@@ -578,7 +614,31 @@ function NearMe() {
               </Popup>
             </Polyline>
           )}
-          {!routeMode && (
+          {cleanSpotMode && cleanCenter && (
+            <Circle 
+              center={cleanCenter} 
+              radius={cleanRadius * 1000} 
+              pathOptions={{ 
+                color: cleanResult ? getAQIColor(cleanResult.aqi) : '#4caf50', 
+                fillColor: cleanResult ? getAQIColor(cleanResult.aqi) : '#4caf50', 
+                fillOpacity: 0.1, 
+                weight: 2 
+              }} 
+            />
+          )}
+          {cleanSpotMode && cleanResult && (
+            <Marker position={[cleanResult.lat, cleanResult.lon]}>
+              <Popup>
+                <strong>Cleanest Spot Found!</strong><br />
+                AQI: {cleanResult.aqi} ({cleanResult.category})<br />
+                PM2.5: {cleanResult.pm25} µg/m³
+              </Popup>
+            </Marker>
+          )}
+          {cleanSpotMode && cleanCenter && cleanResult && (
+            <Polyline positions={[cleanCenter, [cleanResult.lat, cleanResult.lon]]} pathOptions={{ color: '#4caf50', weight: 3, dashArray: '5, 5' }} />
+          )}
+          {!routeMode && !cleanSpotMode && (
             <Marker position={position}>
               <Popup>
                 {aqiData ? (
@@ -599,7 +659,7 @@ function NearMe() {
       </Box>
 
       {/* Search Panel Overlay */}
-      {!routeMode && (
+      {!routeMode && !cleanSpotMode && (
         <motion.div
           drag
           dragMomentum={false}
@@ -832,6 +892,125 @@ function NearMe() {
         </motion.div>
       )}
 
+      {/* Standalone Cleanest Spot Finder Overlay */}
+      {cleanSpotMode && (
+        <motion.div
+          drag
+          dragMomentum={false}
+          dragElastic={0.1}
+          style={{
+            position: "absolute",
+            top: 24,
+            left: "50%",
+            zIndex: 1000,
+            x: "-50%",
+            width: "90%",
+            maxWidth: "400px",
+            cursor: "grab",
+          }}
+          whileDrag={{ cursor: "grabbing", scale: 1.02 }}
+        >
+          <Paper
+            elevation={6}
+            sx={{
+              p: 2,
+              pt: 1,
+              borderRadius: 4,
+              position: "relative",
+              width: "100%",
+              background: isDark ? "rgba(26, 29, 40, 0.95)" : "rgba(255,255,255,0.95)",
+              backdropFilter: "blur(12px)",
+              border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #4caf50",
+              boxShadow: "0 8px 32px rgba(76, 175, 80, 0.2)",
+            }}
+          >
+            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 0.5, opacity: 0.3 }}>
+              <DragHandleIcon fontSize="small" />
+            </Box>
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
+              <Typography variant="subtitle1" fontWeight="bold" sx={{ color: '#4caf50', display: 'flex', alignItems: 'center', gap: 1 }}>
+                <TravelExploreIcon /> Find Cleanest Air
+              </Typography>
+              <IconButton
+                size="small"
+                onClick={() => {
+                  setCleanSpotMode(false);
+                  setCleanCenter(null);
+                  setCleanResult(null);
+                  setStartInput("");
+                }}
+              >
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </Box>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <TextField 
+                size="small" 
+                placeholder="Type location & Enter, or click map" 
+                value={startInput} 
+                onChange={e => setStartInput(e.target.value)} 
+                onKeyDown={async e => {
+                  if (e.key === 'Enter' && startInput) {
+                    const match = startInput.match(/lat:?\s*([+-]?\d+\.?\d*)\s*,\s*lon:?\s*([+-]?\d+\.?\d*)/i);
+                    if (match) {
+                      setCleanCenter([parseFloat(match[1]), parseFloat(match[2])]);
+                    } else {
+                      try {
+                        setCleanLoading(true);
+                        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=in&q=${encodeURIComponent(startInput)}`);
+                        const data = await res.json();
+                        if (data && data.length > 0) {
+                          setCleanCenter([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
+                        }
+                      } catch (err) {}
+                      setCleanLoading(false);
+                    }
+                  }
+                }}
+              />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Typography variant="body2" sx={{ whiteSpace: 'nowrap' }}>Radius: {cleanRadius} km</Typography>
+                <input 
+                  type="range" 
+                  min="1" 
+                  max="50" 
+                  value={cleanRadius} 
+                  onChange={e => setCleanRadius(parseInt(e.target.value))} 
+                  style={{ width: '100%', accentColor: '#4caf50' }} 
+                />
+              </Box>
+              <Button 
+                variant="contained" 
+                size="small" 
+                fullWidth 
+                onClick={() => {
+                  if (cleanCenter) fetchCleanest(cleanCenter[0], cleanCenter[1], cleanRadius);
+                }}
+                disabled={!cleanCenter || cleanLoading}
+                sx={{ mt: 0.5, bgcolor: "#4caf50", color: "white", fontWeight: "bold", "&:hover": { bgcolor: "#388e3c" } }}
+              >
+                Search Radius
+              </Button>
+              {cleanLoading && (
+                <Box sx={{ display: "flex", justifyContent: "center", mt: 1 }}>
+                  <CircularProgress size={20} sx={{ color: '#4caf50' }} />
+                </Box>
+              )}
+              {cleanResult && (
+                <Box sx={{ mt: 1, p: 1, borderRadius: 2, bgcolor: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(76, 175, 80, 0.1)' }}>
+                  <Typography variant="body2" sx={{ textAlign: "center", fontWeight: "bold", color: getAQIColor(cleanResult.aqi) }}>
+                    Cleanest AQI: {cleanResult.aqi} ({cleanResult.category})
+                  </Typography>
+                  <Typography variant="caption" sx={{ display: 'block', textAlign: "center", mt: 0.5 }}>
+                    {((Math.sqrt(Math.pow(cleanResult.lat - cleanCenter[0], 2) + Math.pow((cleanResult.lon - cleanCenter[1]) * Math.cos(cleanCenter[0] * Math.PI / 180), 2)) * 111)).toFixed(1)} km away
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          </Paper>
+        </motion.div>
+      )}
+
       <Snackbar 
         open={snackbarOpen} 
         autoHideDuration={6000} 
@@ -878,6 +1057,7 @@ function NearMe() {
             onClick={() => {
               const newMode = !routeMode;
               setRouteMode(newMode);
+              if (newMode) setCleanSpotMode(false);
               if (!newMode) {
                 setRoutePoints({ start: null, end: null });
                 setRouteAQI(null);
@@ -894,6 +1074,29 @@ function NearMe() {
             }}
           >
             <NavigationIcon sx={{ transform: 'rotate(45deg)' }} />
+          </IconButton>
+        </MuiTooltip>
+
+        <MuiTooltip title={cleanSpotMode ? "Exit Cleanest Spot Finder" : "Find Cleanest Spot"} placement="left">
+          <IconButton 
+            onClick={() => {
+              const newMode = !cleanSpotMode;
+              setCleanSpotMode(newMode);
+              if (newMode) setRouteMode(false);
+              if (!newMode) {
+                setCleanCenter(null);
+                setCleanResult(null);
+                setStartInput("");
+              }
+            }}
+            sx={{ 
+              bgcolor: cleanSpotMode ? "#4caf50" : "white", 
+              color: cleanSpotMode ? "white" : "#4caf50",
+              boxShadow: 3,
+              '&:hover': { bgcolor: cleanSpotMode ? "#388e3c" : "#f5f5f5" }
+            }}
+          >
+            <TravelExploreIcon />
           </IconButton>
         </MuiTooltip>
       </Box>

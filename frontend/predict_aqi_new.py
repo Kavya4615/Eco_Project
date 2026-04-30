@@ -592,6 +592,99 @@ def get_aqi_history():
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
+@app.route('/aqi/cleanest', methods=['GET'])
+def get_cleanest_in_radius():
+    try:
+        lat = float(request.args.get('lat'))
+        lon = float(request.args.get('lon'))
+        radius_km = float(request.args.get('radius', 5.0))
+        
+        # 1. Fetch AOD and Weather for the center point ONLY ONCE
+        aod_data = get_gapless_aod(lat, lon)
+        if aod_data['status'] == 'error':
+            aod_today = 0.5
+        else:
+            aod_today = aod_data['aod_today']
+            
+        url = (
+            f"https://api.open-meteo.com/v1/forecast?"
+            f"latitude={lat}&longitude={lon}"
+            f"&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,precipitation,pressure_msl,cloud_cover"
+            f"&forecast_days=1"
+        )
+        weather_res = requests.get(url).json()
+        hourly = weather_res.get("hourly", {})
+        
+        def get_avg(key, default_val):
+            data = hourly.get(key, [])
+            valid_data = [x for x in data[:24] if x is not None]
+            return sum(valid_data) / len(valid_data) if valid_data else default_val
+
+        weather_today = {
+            "Temp_2m_C": get_avg("temperature_2m", 25),
+            "Humidity_Percent": get_avg("relative_humidity_2m", 50),
+            "Wind_Speed_10m_kmh": get_avg("wind_speed_10m", 10),
+            "Wind_Dir_10m": get_avg("wind_direction_10m", 180),
+            "Precipitation_mm": get_avg("precipitation", 0),
+            "Pressure_MSL_hPa": get_avg("pressure_msl", 1010),
+            "Cloud_Cover_Percent": get_avg("cloud_cover", 10)
+        }
+        
+        # 2. Generate points within the radius
+        # 1 degree lat is ~111 km. 1 degree lon is ~111 * cos(lat) km.
+        lat_step = 0.02 # approx 2.2km
+        lon_step = 0.02 # approx 2.2km depending on lat
+        
+        d_lat = radius_km / 111.0
+        d_lon = radius_km / (111.0 * np.cos(np.radians(lat)))
+        
+        lats = np.arange(lat - d_lat, lat + d_lat + lat_step, lat_step)
+        lons = np.arange(lon - d_lon, lon + d_lon + lon_step, lon_step)
+        
+        points_to_eval = []
+        for p_lat in lats:
+            for p_lon in lons:
+                # Check if within circle distance
+                dist_km = 111.0 * np.sqrt((p_lat - lat)**2 + ((p_lon - lon)*np.cos(np.radians(lat)))**2)
+                if dist_km <= radius_km:
+                    points_to_eval.append((p_lat, p_lon))
+                    
+        if not points_to_eval:
+            points_to_eval.append((lat, lon))
+            
+        # 3. Predict for all points
+        rows = []
+        for p_lat, p_lon in points_to_eval:
+            rows.append({
+                "Latitude": p_lat,
+                "Longitude": p_lon,
+                "AOD": aod_today,
+                **weather_today
+            })
+            
+        df_eval = pd.DataFrame(rows)[features]
+        preds = model.predict(df_eval)
+        
+        best_idx = np.argmin(preds)
+        best_pm25 = max(0.0, preds[best_idx])
+        best_aqi, best_cat = calculate_indian_aqi(best_pm25)
+        
+        best_lat, best_lon = points_to_eval[best_idx]
+        
+        return jsonify({
+            "cleanest_location": {
+                "lat": best_lat,
+                "lon": best_lon,
+                "pm25": round(best_pm25, 2),
+                "aqi": best_aqi,
+                "category": best_cat
+            }
+        })
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == "__main__":
     print("\n==== Satellite-Based India Daily AQI Forecaster Backend Starting ====\n")
     init_db()
