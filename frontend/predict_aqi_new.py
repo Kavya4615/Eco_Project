@@ -22,9 +22,11 @@ import tempfile
 # =========================
 # Initialize Earth Engine
 # =========================
+EE_INITIALIZED = False
 try:
     # Using the new initialization project from predict_aqi_new
     ee.Initialize(project='aqi-predict-488017')
+    EE_INITIALIZED = True
     print("Earth Engine initialized with project: aqi-predict-488017")
 except Exception as e:
     print(f"Standard Initialize failed: {e}")
@@ -34,14 +36,23 @@ except Exception as e:
     try:
         credentials = ee.ServiceAccountCredentials(SERVICE_ACCOUNT, KEY_PATH)
         ee.Initialize(credentials)
+        EE_INITIALIZED = True
         print("Earth Engine initialized with Service Account fallback")
     except Exception as fallback_e:
         print(f"Fallback also failed: {fallback_e}")
+        print("WARNING: Earth Engine is NOT initialized. AOD will use mock fallback values.")
 
 # =========================
 # Load Model
 # =========================
-model = lgb.Booster(model_file="india_aqi_lightgbm_gpu_model.txt")
+# Load model using model_str to handle CRLF vs LF line-ending mismatch.
+# tree_sizes byte offsets in the file were computed on Linux (LF-only).
+# On Windows the file has CRLF, which shifts every offset by 1 byte per line.
+# Reading as binary and stripping \r gives LightGBM the correct byte offsets.
+with open("india_aqi_lightgbm_gpu_model.txt", "rb") as _f:
+    _model_str = _f.read().replace(b"\r\n", b"\n").decode("utf-8")
+model = lgb.Booster(model_str=_model_str)
+del _model_str
 
 features = [
     'Latitude', 'Longitude', 'AOD',
@@ -55,6 +66,8 @@ features = [
 # 1. AOD Retrieval & Interpolation (New Logic)
 # =========================
 def get_gapless_aod(lat, lon, lookback_days=365):
+    if not EE_INITIALIZED:
+        return {'status': 'error', 'message': 'Earth Engine not initialized. Using mock AOD fallback.'}
     try:
         print("DEBUG: Inside get_gapless_aod, creating target_point")
         target_point = ee.Geometry.Point([lon, lat])
