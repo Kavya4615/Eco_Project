@@ -121,7 +121,7 @@ npm run dev
 ```
 
 The app will open at **http://localhost:5173**
-
+And just after this hit to advanced and proceed with that.
 ---
 
 ## 🔌 API Reference
@@ -161,7 +161,8 @@ Returns spatial AQI data across a bounding box for trend analysis.
 
 ## 👩‍💻 Author
 
-**Kavya** — [Mann3012](https://github.com/Mann3012)
+**Kavya** —[Kavya4615](https://github.com/Kavya4615)
+**Mann** — [Mann3012](https://github.com/Mann3012)
 
 ---
 
